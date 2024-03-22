@@ -1,0 +1,11 @@
+cvxpy
+matplotlib
+numpy
+pyqt5
+pytorch_lightning
+scikit-image
+scipy
+tk
+torch
+torchvision
+wandb

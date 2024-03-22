@@ -1,0 +1,28 @@
+program: train.py
+method: grid
+metric:
+  goal: minimize
+  name: train_loss
+parameters:
+  data_directory:
+    value: "data/"
+  optimizer:
+    value: adam
+  dropout:
+    value: 0 
+  update_coors: 
+    value: False
+  output_dims:
+    values: [[16,32],[32, 32 ], [32, 16]]
+  m_dims:
+    value: [16, 16]
+  learning_rate:
+    values: [0.01,0.005,0.001]
+  batch_size:
+    values: [20,10]
+  epochs:
+    value: 3
+  NormCoors:
+    value: False
+  aggr:
+    value: 'add'
