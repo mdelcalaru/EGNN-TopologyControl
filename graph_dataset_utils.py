@@ -4,10 +4,10 @@ import datetime
 import time
 import h5py
 import torch
-from mid.utils import human_readable_duration, console_width_str, graph_plot
-from mid.MFR_cvxpy import MFR_share_solver
+from utils.utils import human_readable_duration, console_width_str, graph_plot
+from utils.MNF_cvxpy import MNF_share_solver
 import numpy as np
-from mid.channel_model import expModel
+from utils.channel_model import expModel
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 import glob
@@ -132,7 +132,7 @@ def generate_samples(params, t0):
                 comm_config = x_comm_gen(comm_radio,params['comm_agents'], task_config)
                 
                 try: 
-                    mfr = MFR_share_solver(task_config.numpy(), comm_config.numpy(), params['channel'], Kopts)
+                    mfr = MNF_share_solver(task_config.numpy(), comm_config.numpy(), params['channel'], Kopts)
                     MFR ,rs, ai, Tau, status=mfr.solver()
                 except:	
                     status = 'infeasible' 

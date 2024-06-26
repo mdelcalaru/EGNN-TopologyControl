@@ -21,7 +21,7 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 canal=expModel(indicatrix=True)
 
-artifact_file="/model/EGNN_best_model.ckpt"
+artifact_file="./model/EGNN_best_model.ckpt"
 model_file = Path(artifact_file)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)

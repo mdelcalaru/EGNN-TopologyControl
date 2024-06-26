@@ -6,7 +6,7 @@ import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.colors import Normalize
 import networkx as nx
-from MNF_cvxpy import MNF_share_solver
+from .MNF_cvxpy import MNF_share_solver
 
 def human_readable_duration(dur):
     t_str = []

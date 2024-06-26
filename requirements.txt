@@ -9,3 +9,7 @@ tk
 torch
 torchvision
 wandb
+torch_geometric
+h5py
+einops
+Mosek
