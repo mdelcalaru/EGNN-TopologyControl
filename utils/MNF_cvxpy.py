@@ -51,7 +51,7 @@ class MNF_share_solver():
     ai_mask[mapK[self.Kopts,0],mapK[self.Kopts,1]]=True	
 
     # Define funcion to max
-    Ce  = cp.sum(cp.log(ai[ai_mask]))#/(self.M*(self.M-1))
+    Ce  = cp.sum(cp.log(ai[ai_mask]))/(self.M*(self.M-1))
 
 
     # CONSTRAINS 
@@ -68,18 +68,21 @@ class MNF_share_solver():
     for k in range(1,self.K):
       B+=cp.reshape(rs[self.N*self.N*k:self.N*self.N*(k+1)], (self.N, self.N),order='C')
     
-    mu_index0=len(constraints)
     constraints += [cp.multiply(self.rate,Tau) >= B ]
-    mu_index1=len(constraints) 
+    
     constraints += [ai[mapK[:,0],mapK[:,1]] <= A[mapK[:,0],indn] ]
+    constraints += [-ai[mapK[:,0],mapK[:,1]] <= A[mapK[:,1],indn] ]
+    
     constraints += [A[indx_AtoZero] == 0]
     constraints += [cp.diag(ai) == 1]
-    constraints += [Tau <= 1]
+    constraints += [Tau[np.where(self.adjacency==0)] == 0]
+
+    #constraints += [Tau <= 1]
     constraints += [cp.diag(Tau) == 0]
 
     # Define problem and solve
     prob = cp.Problem(cp.Maximize(Ce), constraints)
-    #prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_DPAR_OPTIMIZER_MAX_TIME':  50.0})
+    #prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_IPAR_INTPNT_SOLVE_FORM':   'MSK_SOLVE_DUAL'})
     prob.solve(solver=cp.SCS)
     #prob.solve()
     #print("mu_=, %s" %constraints[0].dual_value.reshape((self.N,self.N)))
