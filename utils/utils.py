@@ -7,6 +7,7 @@ from matplotlib import cm
 from matplotlib.colors import Normalize
 import networkx as nx
 from .MNF_cvxpy import MNF_share_solver
+from .channel_model import expModel
 
 def human_readable_duration(dur):
     t_str = []
@@ -203,42 +204,28 @@ def evalModelConvex(NA, TA, channel, Kopts):
   return r_t, tau_t, C_t, aik_t, status #adj, rate, 
 
 
-    
-def simulate_step(NA, model, TA, device, alpha=1) :
-    NA=torch.from_numpy(NA)
-    NA.requires_grad=True
-    data=points_to_data(TA,NA).to(device)
-    xt, edge_index, edge_attr, positions, batch= data.x, data.edge_index, data.edge_attr, data.pos, data.batch
-    f_x=model.forward(xt, edge_index, edge_attr,positions,batch)
-    f_x.backward()
+def evaluar_grilla(task_config):
+    K=task_config.shape[0]
+    canal=expModel(indicatrix=True)
+    Kopts=np.arange(K*(K-1))
+    dist=(canal.rango)*1.0
+    rango=0.5
+    x=np.linspace(rango,(dist-rango),int(2*((dist))+1))
+    y=np.linspace(rango,(dist-rango),int(2*((dist))+1))
+    NA=np.array([[0.5,0.5]])
+    mnf=MNF_share_solver(task_config=task_config, comm_config=NA, channel=canal, Kopts=Kopts)
+    c_map=np.empty((len(x),len(y)))
+    for c_i, i in enumerate(x):
+        for c_j, j in enumerate(y):
+            NA[0,0]=i
+            NA[0,1]=j
+            #print(NA)
+            mnf.update_channel(task_config=task_config, comm_config=NA)
+            try: 
+                C_inicial, rs, ai, Tau, status=mnf.solver()
+                c_map[c_i,c_j]=C_inicial
+            except:
+                pass
 
-    d=(NA.grad/torch.linalg.norm(NA.grad))
-    grad_f_x=NA.grad
-    # Inicializar el tamaño de paso óptimo
-    alpha_opt = torch.ones(NA.shape[0]) * alpha
-   
-    max_iter=100
-    c=0.5
-    cond=False
-    armijo_condition = torch.zeros(NA.shape[0])
-    # Realizar iteraciones hasta que se cumpla la regla de Armijo o se alcance el número máximo de iteraciones
-    for _ in range(max_iter):
-        # Evaluar la función objetivo en el nuevo punto propuesto
-        new_x = torch.multiply(alpha_opt,grad_f_x.T).T
-        data=points_to_data(TA,NA.detach()+ new_x).to(device)
-        f_new = model.evaluate(data).cpu()
-        # Calcular el valor predicho por la regla de Armijo
-        for ind in range(NA.shape[0]):
-            armijo_condition[ind]= f_x + c * alpha_opt[ind] * torch.dot(grad_f_x[ind], d[ind])
-            
-        # Verificar si se cumple la regla de Armijo
-        indx=torch.where(f_new < armijo_condition)
-    
-        if indx[0].shape[0]==0:
-            break
-        else:
-            for ind in indx:
-                alpha_opt[ind] *= 0.5
+    return np.max(c_map)
 
-    print(f"alpha_opt: {alpha_opt}")
-    return torch.multiply(alpha_opt,grad_f_x.T).T
