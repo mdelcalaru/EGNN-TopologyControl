@@ -186,7 +186,7 @@ def create_data_set(args):
     params['var_array'] = args.var_array
     timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     if args.ind:
-        params['channel'] = expModel(alpha=params['alpha'], indicatrix=True)
+        params['channel'] = expModel(indicatrix=True)
         filename = params['output_dir'] +  f"graph_ind_{params['task_agents']}t_{params['comm_agents']}c_{timestamp}{params['var_array']}"
     else:
         params['channel'] = expModel(alpha=params['alpha'])

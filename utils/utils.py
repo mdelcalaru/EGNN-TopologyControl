@@ -186,7 +186,7 @@ def graph_plot(data):
     # Asigna colores a cada etiqueta de clase
     label_colors = [unique_labels.index(label) for label in node_labels]
     
-    fig, ax=plt.subplots(1,1,figsize=(10,10))
+    fig, ax=plt.subplots(1,1,figsize=(5,5))
     # Dibuja el grafo utilizando colores según las etiquetas de clase
     nx.draw(G, pos=positions, with_labels=True, node_color=label_colors, cmap=plt.get_cmap('cool'), node_size=2000, font_size=10,ax=ax)
     ax.set_title(f'MFR de esta configuración es {data.y}')

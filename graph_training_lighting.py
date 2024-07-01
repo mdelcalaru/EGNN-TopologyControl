@@ -1,5 +1,5 @@
 
-from graph_model import LightningGNN,LightningEGNN_net
+from graph_model import LightningEGNN_net
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
 import os

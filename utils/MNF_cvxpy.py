@@ -82,8 +82,8 @@ class MNF_share_solver():
 
     # Define problem and solve
     prob = cp.Problem(cp.Maximize(Ce), constraints)
-    #prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_IPAR_INTPNT_SOLVE_FORM':   'MSK_SOLVE_DUAL'})
-    prob.solve(solver=cp.SCS)
+    prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_IPAR_INTPNT_SOLVE_FORM':   'MSK_SOLVE_DUAL'})
+    #prob.solve(solver=cp.SCS)
     #prob.solve()
     #print("mu_=, %s" %constraints[0].dual_value.reshape((self.N,self.N)))
     #print("la_{1}=, %s" %constraints[1].dual_value)
