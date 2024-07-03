@@ -1,3 +1,6 @@
 .venv/
 *.pyc
 wandb/*
+experimento.pkl
+experimento2.pkl
+experimento3.pkl

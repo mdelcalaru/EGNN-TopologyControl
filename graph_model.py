@@ -8,7 +8,7 @@ import pytorch_lightning as pl
 import torch.nn.functional as F
 from egnn_pytorch import EGNN_Sparse
 from graph_dataset_utils import  points_to_data
-   
+from utils.channel_model import expModel   
 
 class GCN_EG(torch.nn.Module):
     def __init__(self, output_dims,m_dims,update_coors,NormCoors,aggr, dropout):
@@ -127,7 +127,8 @@ def grad_simulate_step(NA, model, TA, device, lr=0.3) :
     f_x.backward()
     #d=(NA.grad/torch.linalg.norm(NA.grad))
     grad_f_x=NA.grad
-    return grad_f_x*lr
+    return grad_f_x*lr, f_x.cpu().detach().numpy()
+
 
 def optimize_NA(NA, model, TA, device, max_iter=500, lr=0.3):
     dxy=np.ones_like(NA)
@@ -146,3 +147,23 @@ def optimize_NA(NA, model, TA, device, max_iter=500, lr=0.3):
         print(f"salio por norma en {iter} iteraciones")
     return NA_history[-1]
 
+def evaluar_grilla_model(task_config,model,device):
+    canal=expModel(indicatrix=True)
+    dist=(canal.rango)*1.0
+    rango=0.5
+    x=np.linspace(rango,(dist-rango),int(2*((dist))+1))
+    y=np.linspace(rango,(dist-rango),int(2*((dist))+1))
+    NA=np.array([[0.5,0.5]])
+    c_map=np.empty((len(x),len(y)))
+    for c_i, i in enumerate(x):
+        for c_j, j in enumerate(y):
+            NA[0,0]=i
+            NA[0,1]=j
+            #print(NA)
+            try: 
+                data=points_to_data(task_config,torch.from_numpy(NA)).to(device)
+                c_map[c_i,c_j]=model.evaluate(data).cpu().detach().numpy()
+            except:
+                c_map[c_i,c_j]=-4
+
+    return np.max(c_map)

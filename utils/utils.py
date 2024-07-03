@@ -195,13 +195,15 @@ def graph_plot(data):
 
 
 
-def evalModelConvex(NA, TA, channel, Kopts):
-  mfr_cvx=MNF_share_solver(task_config=TA,comm_config=NA,channel=channel,Kopts=Kopts)
+def evalModelConvex(NA, TA):
+  K=TA.shape[0]
+  canal=expModel(indicatrix=True)
+  Kopts=np.arange(K*(K-1))
+  mfr_cvx=MNF_share_solver(task_config=TA,comm_config=NA,channel=canal,Kopts=Kopts)
   
   C_t, r_t, aik_t, tau_t, status=mfr_cvx.solver()#task_config=TA, comm_config=NA)
 
-
-  return r_t, tau_t, C_t, aik_t, status #adj, rate, 
+  return C_t#r_t, tau_t, C_t, aik_t, status #adj, rate, 
 
 
 def evaluar_grilla(task_config):
