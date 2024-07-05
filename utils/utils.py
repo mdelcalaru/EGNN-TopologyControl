@@ -197,13 +197,12 @@ def graph_plot(data):
 
 def evalModelConvex(NA, TA):
   K=TA.shape[0]
+  N=NA.shape[0]
   canal=expModel(indicatrix=True)
   Kopts=np.arange(K*(K-1))
-  mfr_cvx=MNF_share_solver(task_config=TA,comm_config=NA,channel=canal,Kopts=Kopts)
-  
-  C_t, r_t, aik_t, tau_t, status=mfr_cvx.solver()#task_config=TA, comm_config=NA)
-
-  return C_t#r_t, tau_t, C_t, aik_t, status #adj, rate, 
+  mnf=MNF_share_solver(num_task_config=K, num_comm_config=N, channel=canal, Kopts=Kopts)
+  MNF, status=mnf.solve(task_config=TA.numpy(), comm_config=NA.numpy())
+  return MNF
 
 
 def evaluar_grilla(task_config):
@@ -215,17 +214,16 @@ def evaluar_grilla(task_config):
     x=np.linspace(rango,(dist-rango),int(2*((dist))+1))
     y=np.linspace(rango,(dist-rango),int(2*((dist))+1))
     NA=np.array([[0.5,0.5]])
-    mnf=MNF_share_solver(task_config=task_config, comm_config=NA, channel=canal, Kopts=Kopts)
+    mnf=MNF_share_solver(num_task_config=K, num_comm_config=1, channel=canal, Kopts=Kopts)
     c_map=np.empty((len(x),len(y)))
     for c_i, i in enumerate(x):
         for c_j, j in enumerate(y):
             NA[0,0]=i
             NA[0,1]=j
             #print(NA)
-            mnf.update_channel(task_config=task_config, comm_config=NA)
             try: 
-                C_inicial, rs, ai, Tau, status=mnf.solver()
-                c_map[c_i,c_j]=C_inicial
+                MFR, status=mnf.solve(task_config=task_config.numpy(), comm_config=NA.numpy())
+                c_map[c_i,c_j]=MFR
             except:
                 pass
 

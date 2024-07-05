@@ -8,28 +8,49 @@ import torch
 from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_directory = "./data/"
+data_directory = "./data_nueva/"
 cpus = os.cpu_count()
 
 config_dict = {
     'optimizer': 'adam',
-    'output_dims': [16,32,21],
-    'm_dims': [16,32,64],
+    'output_dims': [32,32],
+    'm_dims': [32,32],
+    'update_feats': True,
     'update_coors': False,
     'learning_rate': 0.001,
     'dropout': 0.0,
-    'batch_size': 20, 
+    'batch_size': 10, 
     'epochs': 10,  
     'NormCoors':False, 
     'aggr':'mean',  
     }
 
+#artifact_name="model-p5qvg23t:v9"
+#artifact_dir="/home/mdelcastillo/proyectos/mfr_learning/artifacts/" + artifact_name +"/model.ckpt"
+#model_file = Path(artifact_dir)
+#if not model_file.exists():
+#    import wandb
+#    run = wandb.init()
+#    artifact = run.use_artifact("iie-sc/EGNN/"+artifact_name , type='model')
+#    artifact_dir = artifact.download()                             
+                                                 
+
+
+#model =LightningEGNN_net.load_from_checkpoint(model_file)
+#print(model)
+
 model = LightningEGNN_net(**config_dict)
 #print(model)
 
-logger = pl_loggers.WandbLogger(log_model= 'all' ,project="EGNN", config=config_dict)
+logger = pl_loggers.WandbLogger(log_model= 'all' ,project="new_EGNN", config=config_dict)
 train_loader, test_loader = build_dataset(batch_size=config_dict['batch_size'], dir=data_directory, cpus=cpus)
 trainer = pl.Trainer(logger=logger, max_epochs=config_dict['epochs']  )
 trainer.fit(model, train_loader, test_loader)
+#trainer.fit(model, train_loader, test_loader,ckpt_path="/home/mdelcastillo/proyectos/mfr_learning/artifacts/model-jus4tzi7:v9/model.ckpt")
+#model-p5qvg23t:v9
+'''
+#trainer.fit(model, train_loader, test_loader,ckpt_path=model_file)
+out_train, out_test = build_dataset(batch_size=config_dict['batch_size'], dir="./data/Ind_graph_2/", cpus=cpus)
 
-
+print(trainer.test(model, dataloaders=out_test))
+print(trainer.test(model, dataloaders=out_train))'''
