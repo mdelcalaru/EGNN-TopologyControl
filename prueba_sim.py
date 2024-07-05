@@ -1,4 +1,5 @@
 from calendar import c
+from networkx import difference
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -38,7 +39,7 @@ model_file = Path(artifact_dir)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
 
-dist=(canal.rango)*1.1
+dist=(canal.rango)*1.0
 
 
 # Configuración inicial
@@ -61,43 +62,50 @@ reconfig_agents_pos = np.random.rand(num_reconfig_agents, 2) * space_size
 
 pasos_ajuste = 5
 max_c = []
-model_y = []
 c_config = []
 #def update(frame):
 #    global free_agents_pos, reconfig_agents_pos
     # Mover agentes libres aleatoriamente
-free_hist=[]
-reconfig_hist=[]
-max_model_y=[]
+estadistica={}
+for experiment in range(5):
+    model_y = []
+    free_hist=[]
+    reconfig_hist=[]
+    max_model_y=[]
+    for iter in range(50):
+        deltax = (np.random.rand(num_free_agents) - 0.5)*2
+        deltay = (np.random.rand(num_free_agents) - 0.5)*2
+        for i in range (num_free_agents):
+            if free_agents_pos[i, 0] + deltax[i] < 0 or free_agents_pos[i, 0] + deltax[i] > space_size:
+                deltax[i] = -deltax[i] 
+            free_agents_pos[i, 0] += deltax[i]
+            if free_agents_pos[i, 1] + deltay[i] < 0 or free_agents_pos[i, 1] + deltay[i] > space_size:
+                deltay[i] = -deltay[i]
+            free_agents_pos[i, 1] += deltay[i]
+        
+        # Reconfigurar agentes en función de los agentes libres
+        for i in range(pasos_ajuste):
+            grad, y =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
+            reconfig_agents_pos += grad.numpy()
 
-for iter in range(100):
-    deltax = (np.random.rand(num_free_agents) - 0.5)*2
-    deltay = (np.random.rand(num_free_agents) - 0.5)*2
-    for i in range (num_free_agents):
-        if free_agents_pos[i, 0] + deltax[i] < 0 or free_agents_pos[i, 0] + deltax[i] > space_size:
-            deltax[i] = -deltax[i] 
-        free_agents_pos[i, 0] += deltax[i]
-        if free_agents_pos[i, 1] + deltay[i] < 0 or free_agents_pos[i, 1] + deltay[i] > space_size:
-            deltay[i] = -deltay[i]
-        free_agents_pos[i, 1] += deltay[i]
+#        print(f"iteracion {iter}")
+        data=points_to_data(TA=torch.from_numpy(free_agents_pos),NA=torch.from_numpy(reconfig_agents_pos)).to(device)
+        #model_y.append(model.evaluate(data).cpu().detach().numpy())
+        max_c.append(evaluar_grilla(task_config=torch.from_numpy(free_agents_pos)))
+        #max_model_y.append(evaluar_grilla_model(task_config=torch.from_numpy(free_agents_pos),model=model,device=device))
+        try:
+            c_config.append(evalModelConvex(TA=torch.from_numpy(free_agents_pos), NA=torch.from_numpy(reconfig_agents_pos)))
+        except:
+            c_config.append(-4.0)
+            
+        free_hist.append(free_agents_pos)
+        reconfig_hist.append(reconfig_agents_pos)
     
-    # Reconfigurar agentes en función de los agentes libres
-    for i in range(pasos_ajuste):
-        grad, y =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
-        reconfig_agents_pos += grad.numpy()
-
-    print(f"iteracion {iter}")
-    data=points_to_data(TA=torch.from_numpy(free_agents_pos),NA=torch.from_numpy(reconfig_agents_pos)).to(device)
-    model_y.append(model.evaluate(data).cpu().detach().numpy())
-    max_c.append(evaluar_grilla(task_config=torch.from_numpy(free_agents_pos)))
-    max_model_y.append(evaluar_grilla_model(task_config=torch.from_numpy(free_agents_pos),model=model,device=device))
-    try:
-        c_config.append(evalModelConvex(TA=torch.from_numpy(free_agents_pos), NA=torch.from_numpy(reconfig_agents_pos)))
-    except:
-        c_config.append(-4.0)
-    free_hist.append(free_agents_pos)
-    reconfig_hist.append(reconfig_agents_pos)
-    # Actualizar las posiciones en el gráfico
+        experiment_data={'free_hist':free_hist,'reconfig_hist':reconfig_hist, 'model_y':model_y, 'max_model_y': max_model_y}
+        estadistica[experiment]=experiment_data
+        print(f"Experimento {experiment} iteracion {iter}")
+        
+# Actualizar las posiciones en el gráfico
 #    free_agents_scatter.set_offsets(free_agents_pos)
 #    reconfig_agents_scatter.set_offsets(reconfig_agents_pos)
 #    return free_agents_scatter, reconfig_agents_scatter
@@ -105,13 +113,12 @@ for iter in range(100):
 #ani = animation.FuncAnimation(fig, update, frames=100, interval=100, blit=True) 
 #plt.legend()
 #plt.show()
-file='experimento3.pkl'
-experiment_data={'free_hist':free_hist,'reconfig_hist':reconfig_hist,'max_c':max_c,'model_y':model_y,'c_config':c_config}
+file='experimento_trueValues_3T1N_5rep_5pasos.pkl'
 with open(file, 'wb') as f:
-    pickle.dump(experiment_data, f)
+    pickle.dump(estadistica, f)
 
-model_y = np.array(model_y)
-
+#model_y = np.array(model_y)
+'''
 fig2 = plt.figure()
 plt.plot(max_c, label='Max C',linewidth=10)
 plt.plot(model_y[:,0,0], label='Model Y',linewidth=7)
@@ -122,3 +129,4 @@ plt.ylabel('Configuration Socre')
 #plt.ylim(-4, 1)
 plt.legend()
 plt.show()
+'''	
