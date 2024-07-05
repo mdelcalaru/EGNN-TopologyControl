@@ -25,19 +25,47 @@ canal=expModel(indicatrix=True)
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
 
-artifact_name="model-mlzmc8z4:v9" #cosmic-wind-321
+artifact_name="model-giwgzbdx:v9" #cosmic-wind-321
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 
 if not model_file.exists():
     import wandb
     run = wandb.init()
-    artifact = run.use_artifact("iie-sc/EGNN/"+artifact_name , type='model')
+    artifact = run.use_artifact("iie-sc/new_EGNN/"+artifact_name , type='model')
     artifact_dir = artifact.download()     
 
 
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
+
+from torch_geometric.utils import to_undirected, to_edge_index
+from torch_geometric.data import Data
+
+def edge_index_gen(task,comm,adj,rate):
+    adjacency_matrix =adj*rate
+    edge_index, edge_weight= to_edge_index(adjacency_matrix.to_sparse())
+    return edge_index, edge_weight
+
+def points_to_data(TA,NA,adj, rate,mfr=None):
+    task_agents=TA.shape[0]
+    comm_agents=NA.shape[0]
+    positions = torch.vstack((TA,NA))
+    types=torch.zeros((task_agents+comm_agents,2))
+    types[0:task_agents,0]=1
+    types[task_agents:,1]=1
+    edge_index, edge_weights = edge_index_gen(task_agents,comm_agents, adj=torch.from_numpy(adj), rate=torch.from_numpy(rate))
+    
+    edge_index,edge_weights=to_undirected(edge_index,edge_attr=edge_weights)
+
+    if mfr is None:
+        #data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions)
+        data=Data(x=types, edge_index=edge_index, pos=positions)
+    else:
+        #data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions, y=mfr)
+        data=Data(x=types, edge_index=edge_index, pos=positions, y=mfr)
+
+    return data
 
 dist=(canal.rango)*1.0
 TA=torch.tensor([[0.0,0.0],[dist,0.0],[0.0,dist]])
@@ -46,7 +74,7 @@ y=np.linspace(0,(dist),int(2*((dist))+1))
 task_agents=3
 comm_agents=1
 
-with open('c_mapCVXPY_map.pkl', 'rb') as f:
+with open('c_mapCVXPY_indicatrix_graph_2xgrid.pkl', 'rb') as f:
     c_mapCVXPY = pickle.load(f)
 
 c_map=np.empty((len(x),len(y)))
@@ -59,14 +87,11 @@ grid_grads_V=[]
 for c_i, i in enumerate(x):
     for c_j, j in enumerate(y):
         NA=torch.tensor([[i,j]],requires_grad=True)
-        positions = torch.vstack((TA,NA))
-        types=torch.zeros((task_agents+comm_agents,2))
-        types[0:task_agents,0]=1
-        types[task_agents:,1]=1
-        edge_index = edge_index_gen(task_agents,comm_agents)
-
-        edge_index=to_undirected(edge_index)
-        data=Data(x=types, edge_index=edge_index, pos=positions).to(device)
+        positions = torch.vstack((TA,NA.detach()))  
+        positions = torch.vstack((TA,NA.detach()))
+        adj =canal.adjacency(positions.numpy())
+        rate, _=canal.predict(positions.numpy())
+        data = points_to_data(TA=TA, NA=NA,adj=adj,rate=rate).to(device)
         xt, edge_index, edge_attr, positions, batch= data.x, data.edge_index, data.edge_attr, data.pos, data.batch
         y_model=model.forward(xt, edge_index, edge_attr,positions,batch)
         c_map[c_i,c_j]=y_model[0].item()
@@ -87,7 +112,7 @@ im0= ax0.imshow(c_map.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], 
 
 ax0.set_xlabel('x coordinate for nodes', fontsize=15)
 ax0.set_ylabel('y coordinate for nodes', fontsize=15)
-plt.title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
+ax0.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
 ax0.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
 fig.colorbar(im0,cax=cax0)
 
@@ -106,7 +131,7 @@ im1= ax1.imshow(c_mapCVXPY.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x
 
 ax1.set_xlabel('x coordinate for nodes', fontsize=15)
 ax1.set_ylabel('y coordinate for nodes', fontsize=15)
-plt.title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
+ax1.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
 ax1.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
 fig.colorbar(im1,cax=cax1)
 

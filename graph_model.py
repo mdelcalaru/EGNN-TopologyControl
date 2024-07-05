@@ -9,49 +9,49 @@ import torch.nn.functional as F
 from egnn_pytorch import EGNN_Sparse
 from graph_dataset_utils import  points_to_data
 from utils.channel_model import expModel   
+'''Modelo para aproximar y'''
 
 class GCN_EG(torch.nn.Module):
-    def __init__(self, output_dims,m_dims,update_coors,NormCoors,aggr, dropout):
+    def __init__(self, output_dims,m_dims,update_coors,update_feats,NormCoors,aggr, dropout):
         torch.manual_seed(12345)
         super().__init__()
-        self.conv1 = EGNN_Sparse(feats_dim=2,pos_dim=2,update_coors=update_coors,m_dim=m_dims[0],out_dim=output_dims[0], dropout=dropout, aggr=aggr,norm_coors=NormCoors)
-        self.conv2 = EGNN_Sparse(feats_dim=output_dims[0],pos_dim=2,update_coors=update_coors,m_dim=m_dims[1],out_dim=output_dims[1], dropout=dropout, aggr=aggr,norm_coors=NormCoors)
-        self.conv3 = EGNN_Sparse(feats_dim=output_dims[1],pos_dim=2,update_coors=update_coors,m_dim=m_dims[2],out_dim=output_dims[2], dropout=dropout, aggr=aggr,norm_coors=NormCoors)
-        #self.conv4 = TAGConv(2, hidden_channels,K=K)
-        self.lin = Linear(output_dims[2],out_features=1)
-        self.dropout=dropout
 
+        self.layers=torch.nn.ModuleList()
+        in_feats_dim=2        
+        for i in range(len(m_dims)):
+            self.layers.append(EGNN_Sparse(feats_dim=in_feats_dim,pos_dim=2,update_coors=update_coors,update_feats = update_feats,m_dim=m_dims[i],out_dim=output_dims[i], dropout=dropout, aggr=aggr,norm_coors=NormCoors))
+            if update_feats:
+                in_feats_dim=output_dims[i]
+#   
+#        self.conv2 = EGNN_Sparse(feats_dim=output_dims[0],edge_attr_dim=1,pos_dim=2,update_coors=update_coors,update_feats = update_feats,m_dim=m_dims[1],out_dim=output_dims[1], dropout=dropout, aggr=aggr,norm_coors=NormCoors)
+#        self.conv3 = EGNN_Sparse(feats_dim=output_dims[1],edge_attr_dim=1,pos_dim=2,update_coors=update_coors,update_feats = update_feats,m_dim=m_dims[2],out_dim=output_dims[2], dropout=dropout, aggr=aggr,norm_coors=NormCoors)
+        #self.conv4 = TAGConv(2, hidden_channels,K=K)
+        self.lin = Linear(in_feats_dim,out_features=1)
+        self.dropout=dropout
         #self.aggr = MeanAggregation()
+
     def forward(self, x, edge_index, edge_attr,positions, batch):
         # 1. Obtain node embeddings 
         xt=torch.cat([positions, x], dim=-1).float()
-        #xt=torch.hstack((positions, positions)).float()
-        x = self.conv1(xt, edge_index, edge_attr,batch)
-        #x = x.relu()
-        x = self.conv2(x, edge_index, edge_attr,batch)
-        #x = x.relu()
-        x = self.conv3(x, edge_index, edge_attr,batch)
-  
-        x_=x[:,2:]
-       
-        #x_=self.conv4(x_, edge_index)
-        # 2. Readout layer
-       
-        x_ = global_mean_pool(x_, batch) 
-        # [batch_size, hidden_channels]
+        for layer in self.layers:
+            xt = layer(xt, edge_index, edge_attr,batch)
+            
+#        x = self.conv1(xt, edge_index, edge_attr.float(),batch)
+#        x = self.conv2(x, edge_index, edge_attr.float(),batch)
+#        x = self.conv3(x, edge_index, edge_attr.float(),batch)
+        #x1=xt[:,:2]
+        x2=xt[:,2:]
+        x2 = global_mean_pool(x2, batch) 
+        x2 = self.lin(x2) #x1 is the gradient for all agents positions
         
-        # 3. Apply a final classifier
-        #x = F.dropout(x, p=self.dropout, training=self.training)
-        x_ = self.lin(x_)
-        
-        return x_
+        return x2
     
 
 
 class LightningEGNN_net(pl.LightningModule):
-    def __init__(self,optimizer,learning_rate, output_dims,m_dims,update_coors, NormCoors, aggr, dropout, **kwargs):
+    def __init__(self,optimizer,learning_rate, output_dims,m_dims,update_coors,update_feats, NormCoors, aggr, dropout, **kwargs):
         super().__init__()
-        self.model = GCN_EG(output_dims=output_dims,m_dims=m_dims,update_coors=update_coors, NormCoors=NormCoors, aggr=aggr, dropout=dropout)
+        self.model = GCN_EG(output_dims=output_dims,m_dims=m_dims,update_coors=update_coors,update_feats=update_feats, NormCoors=NormCoors, aggr=aggr, dropout=dropout)
         self.loss_module = torch.nn.SmoothL1Loss()
         self.map_metric = torchmetrics.MeanAbsolutePercentageError()
         self.R2metric = torchmetrics.R2Score(num_outputs=1)
