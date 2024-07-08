@@ -230,7 +230,7 @@ def generate_samples(params, t0):
             status = 'infeasible'
             
             while (status != 'optimal'):
-                comm_radio=(params['channel'].rango)*1.0
+                comm_radio=(params['channel'].rango)*1.5
                 task_config = x_task_gen(comm_radio, params['task_agents'])
                 comm_config = x_comm_gen(comm_radio,params['comm_agents'], task_config)
                 config=np.vstack((task_config.numpy(), comm_config.numpy()))
@@ -296,7 +296,7 @@ def create_data_set(args):
     timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
     if args.ind:
         params['channel'] = expModel(indicatrix=True)
-        filename = params['output_dir'] +  f"graph_ind_{params['task_agents']}t_{params['comm_agents']}c_{timestamp}{params['var_array']}"
+        params['filename'] = params['output_dir'] +  f"graph_ind_{params['task_agents']}t_{params['comm_agents']}c_{timestamp}{params['var_array']}"
     else:
         params['alpha'] = args.alpha
         params['channel'] = expModel(alpha=params['alpha'])
@@ -304,7 +304,7 @@ def create_data_set(args):
     generate_samples(params,tt)
     duration_str = human_readable_duration(time.time()-tt)
     print(f'generated {samples} samples in {duration_str}')
-    print(f'saved data to: {params['filename']}')
+    print('saved data to: ' + params['filename'])
 
 
 def view_dataset(args):

@@ -1,4 +1,5 @@
 from calendar import c
+import time
 from networkx import difference
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,7 +32,7 @@ canal=expModel(indicatrix=True)
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
 
-artifact_name="model-mlzmc8z4:v9" #cosmic-wind-321
+artifact_name="model-giwgzbdx:v9" #cosmic-wind-321
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 
@@ -67,11 +68,15 @@ c_config = []
 #    global free_agents_pos, reconfig_agents_pos
     # Mover agentes libres aleatoriamente
 estadistica={}
-for experiment in range(5):
+t0=time.time()
+for experiment in range(20):
+    t1=time.time()
     model_y = []
     free_hist=[]
     reconfig_hist=[]
     max_model_y=[]
+    max_c = []
+    c_config = []
     for iter in range(50):
         deltax = (np.random.rand(num_free_agents) - 0.5)*2
         deltay = (np.random.rand(num_free_agents) - 0.5)*2
@@ -88,10 +93,12 @@ for experiment in range(5):
             grad, y =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
             reconfig_agents_pos += grad.numpy()
 
-#        print(f"iteracion {iter}")
-        data=points_to_data(TA=torch.from_numpy(free_agents_pos),NA=torch.from_numpy(reconfig_agents_pos)).to(device)
+
+        #adj=canal.adjacency(torch.vstack((torch.from_numpy(free_agents_pos),torch.from_numpy(reconfig_agents_pos))).numpy())
+        #rate, _=canal.predict(torch.vstack((torch.from_numpy(free_agents_pos),torch.from_numpy(reconfig_agents_pos))).numpy())
+        #data=points_to_data(TA=torch.from_numpy(free_agents_pos),NA=torch.from_numpy(reconfig_agents_pos), adj=adj, rate=rate).to(device)
         #model_y.append(model.evaluate(data).cpu().detach().numpy())
-        max_c.append(evaluar_grilla(task_config=torch.from_numpy(free_agents_pos)))
+        max_c.append(evaluar_grilla(task_config=free_agents_pos))
         #max_model_y.append(evaluar_grilla_model(task_config=torch.from_numpy(free_agents_pos),model=model,device=device))
         try:
             c_config.append(evalModelConvex(TA=torch.from_numpy(free_agents_pos), NA=torch.from_numpy(reconfig_agents_pos)))
@@ -101,10 +108,13 @@ for experiment in range(5):
         free_hist.append(free_agents_pos)
         reconfig_hist.append(reconfig_agents_pos)
     
-        experiment_data={'free_hist':free_hist,'reconfig_hist':reconfig_hist, 'model_y':model_y, 'max_model_y': max_model_y}
+        experiment_data={'free_hist':free_hist,'reconfig_hist':reconfig_hist, 'max_c':max_c, 'c_config': c_config}
         estadistica[experiment]=experiment_data
         print(f"Experimento {experiment} iteracion {iter}")
-        
+    
+    print(f"Experimento {experiment} en {time.time()-t1} segundos")
+
+print(f"Total en {time.time()-t0} segundos") 
 # Actualizar las posiciones en el gráfico
 #    free_agents_scatter.set_offsets(free_agents_pos)
 #    reconfig_agents_scatter.set_offsets(reconfig_agents_pos)

@@ -222,7 +222,7 @@ def evaluar_grilla(task_config):
             NA[0,1]=j
             #print(NA)
             try: 
-                MFR, status=mnf.solve(task_config=task_config.numpy(), comm_config=NA.numpy())
+                MFR, status=mnf.solve(task_config=task_config, comm_config=NA)
                 c_map[c_i,c_j]=MFR
             except:
                 pass
