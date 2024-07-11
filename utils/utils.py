@@ -8,6 +8,7 @@ from matplotlib.colors import Normalize
 import networkx as nx
 from .MNF_cvxpy import MNF_share_solver
 from .channel_model import expModel
+from torch_geometric.utils import to_networkx
 
 def human_readable_duration(dur):
     t_str = []
@@ -177,21 +178,24 @@ def plot_config(config, ax=None, pause=None, clear_axes=False, show=True,
 
 def graph_plot(data):
     positions, types, edge_index= data.pos, data.x, data.edge_index
+    #data=Data(x=types, edge_index=edge_index, pos=positions, y=data.y)
     # Convierte el objeto Data en un grafo de NetworkX
-    G = nx.Graph()
-    G.add_edges_from(edge_index.t().tolist())
+    G = to_networkx(data)#nx.Graph()
+    #G.add_edges_from(edge_index.t().tolist())
 
     # Obtén las etiquetas de clase y sus valores únicos
     node_labels = types[:,0].tolist()
     unique_labels = list(set(node_labels))
+    #print(unique_labels)
     # Asigna colores a cada etiqueta de clase
     label_colors = [unique_labels.index(label) for label in node_labels]
-    
-    fig, ax=plt.subplots(1,1,figsize=(5,5))
+    print(label_colors)
+    fig, ax=plt.subplots(1,1,figsize=(10,10))
     # Dibuja el grafo utilizando colores según las etiquetas de clase
     nx.draw(G, pos=positions, with_labels=True, node_color=label_colors, cmap=plt.get_cmap('cool'), node_size=2000, font_size=10,ax=ax)
     ax.set_title(f'MFR de esta configuración es {data.y}')
     plt.show()
+
 
 
 
@@ -201,9 +205,9 @@ def evalModelConvex(NA, TA):
   canal=expModel(indicatrix=True)
   Kopts=np.arange(K*(K-1))
   mnf=MNF_share_solver(num_task_config=K, num_comm_config=N, channel=canal, Kopts=Kopts)
-  MNF, status=mnf.solve(task_config=TA.numpy(), comm_config=NA.numpy())
-  return MNF
-
+  MNF, status, ai, Tau, rs=mnf.solve(task_config=TA.numpy(), comm_config=NA)
+  return rs, MNF, ai
+# self.Ce.value , self.prob.status, ai.value,Tau.value, rs.value
 
 def evaluar_grilla(task_config):
     K=task_config.shape[0]

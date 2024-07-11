@@ -121,16 +121,13 @@ class LightningEGNN_net(pl.LightningModule):
 def grad_simulate_step(NA, model, TA, device, lr=0.3) :
     NA=torch.from_numpy(NA)
     NA.requires_grad=True
-    canal=expModel(indicatrix=True)
-    adj =canal.adjacency(torch.vstack((TA,NA.detach())).numpy())
-    rate, _=canal.predict(torch.vstack((TA,NA.detach())).numpy())
-    data=points_to_data(TA,NA,adj,rate).to(device)
+    data=points_to_data(TA,NA).to(device)
     xt, edge_index, edge_attr, positions, batch= data.x, data.edge_index, data.edge_attr, data.pos, data.batch
     f_x=model.forward(xt, edge_index, edge_attr,positions,batch)
     f_x.backward()
     #d=(NA.grad/torch.linalg.norm(NA.grad))
     grad_f_x=NA.grad
-    return grad_f_x*lr, f_x.cpu().detach().numpy()
+    return grad_f_x*lr#, f_x.cpu().detach().numpy()
 
 
 def optimize_NA(NA, model, TA, device, max_iter=500, lr=0.3):

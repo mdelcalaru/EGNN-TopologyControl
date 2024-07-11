@@ -4,3 +4,8 @@ wandb/*
 experimento.pkl
 experimento2.pkl
 experimento3.pkl
+data/
+data_no*
+experimento*
+artifacts/
+new_EGNN/

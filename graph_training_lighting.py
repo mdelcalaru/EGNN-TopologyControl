@@ -8,7 +8,7 @@ import torch
 from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_directory = "./data_nueva/"
+data_directory = "./data/"
 cpus = os.cpu_count()
 
 config_dict = {
@@ -26,7 +26,7 @@ config_dict = {
     }
 
 #artifact_name="model-p5qvg23t:v9"
-#artifact_dir="/home/mdelcastillo/proyectos/mfr_learning/artifacts/" + artifact_name +"/model.ckpt"
+#artifact_dir="model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_dir)
 #if not model_file.exists():
 #    import wandb
@@ -40,13 +40,13 @@ config_dict = {
 #print(model)
 
 model = LightningEGNN_net(**config_dict)
-#print(model)
+print(model)
 
 logger = pl_loggers.WandbLogger(log_model= 'all' ,project="new_EGNN", config=config_dict)
 train_loader, test_loader = build_dataset(batch_size=config_dict['batch_size'], dir=data_directory, cpus=cpus)
 trainer = pl.Trainer(logger=logger, max_epochs=config_dict['epochs']  )
 trainer.fit(model, train_loader, test_loader)
-#trainer.fit(model, train_loader, test_loader,ckpt_path="/home/mdelcastillo/proyectos/mfr_learning/artifacts/model-jus4tzi7:v9/model.ckpt")
+#trainer.fit(model, train_loader, test_loader,ckpt_path=artifact_dir)
 #model-p5qvg23t:v9
 '''
 #trainer.fit(model, train_loader, test_loader,ckpt_path=model_file)

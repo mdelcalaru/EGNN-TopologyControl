@@ -32,7 +32,7 @@ canal=expModel(indicatrix=True)
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
 
-artifact_name="model-giwgzbdx:v9" #cosmic-wind-321
+artifact_name="model-o2aeih18:v19" #cosmic-wind-321
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 
@@ -40,7 +40,7 @@ model_file = Path(artifact_dir)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
 
-dist=(canal.rango)*1.0
+dist=(canal.rango)*1.5
 
 
 # Configuración inicial
@@ -69,7 +69,7 @@ c_config = []
     # Mover agentes libres aleatoriamente
 estadistica={}
 t0=time.time()
-for experiment in range(20):
+for experiment in range(1):
     t1=time.time()
     model_y = []
     free_hist=[]
@@ -123,7 +123,7 @@ print(f"Total en {time.time()-t0} segundos")
 #ani = animation.FuncAnimation(fig, update, frames=100, interval=100, blit=True) 
 #plt.legend()
 #plt.show()
-file='experimento_trueValues_3T1N_5rep_5pasos.pkl'
+file='experimento_trueValues_3T1N_1rep_5pasos.pkl'
 with open(file, 'wb') as f:
     pickle.dump(estadistica, f)
 

@@ -48,10 +48,13 @@ def edge_index_gen(task,comm,adj,rate):
     edge_index, edge_weight= to_edge_index(adjacency_matrix.to_sparse())
     return edge_index, edge_weight
 
-def points_to_data(TA,NA,adj, rate,mfr=None):
+def points_to_data(TA,NA,mfr=None):
     task_agents=TA.shape[0]
     comm_agents=NA.shape[0]
     positions = torch.vstack((TA,NA))
+    canal=expModel(indicatrix=True)
+    adj =canal.adjacency(positions.detach().numpy())
+    rate, _=canal.predict(positions.detach().numpy())
     types=torch.zeros((task_agents+comm_agents,2))
     types[0:task_agents,0]=1
     types[task_agents:,1]=1
@@ -101,8 +104,8 @@ def x_comm_gen(r,n, task_agents, rndm_seed=None):
     theta = torch.linspace(0, 2*np.pi, 360)
     for i in range(n):
         phi=theta[np.random.randint(0, 360-1, 1)][0]
-        x_comm[i,0] = dist_max[0] * torch.cos(phi)*0.4+centro[0]
-        x_comm[i,1] = dist_max[1] * torch.sin(phi)*0.4+centro[1]
+        x_comm[i,0] = dist_max[0]/2 * torch.cos(phi)*0.4+centro[0]
+        x_comm[i,1] = dist_max[1]/2 * torch.sin(phi)*0.4+centro[1]
 
     return x_comm
 
@@ -176,7 +179,7 @@ def generate_large_samples(params, t0):
     df_train=[]
     df_val=[]
     sample_count = params['sample_count']
-    comm_radio=(params['channel'].rango)*1.0
+    comm_radio=(params['channel'].rango)*1.1
     for mode in ('train', 'test'):
         for i in range(sample_count[mode]):
             status = 'infeasible'
@@ -190,8 +193,7 @@ def generate_large_samples(params, t0):
                 adj=params['channel'].adjacency(config)
                 rate,_=params['channel'].predict(config)
                 try:
-
-                    MFR, status=MNF_graph_solver(params['task_agents'], params['comm_agents'], params['channel'],adj,rate)
+                    MFR, status=MNF_graph_solver(params['task_agents'], params['comm_agents'],adj,rate)
                 except:	
                     status = 'infeasible' 
 
@@ -201,7 +203,7 @@ def generate_large_samples(params, t0):
                         status = 'infeasible'
                     else:
                         #'positions', 'types', 'edge_index','MFR'
-                        data = points_to_data(task_config,comm_config,adj,rate, MFR)
+                        data = points_to_data(task_config,comm_config, MFR)
                         if mode=='train':
                             df_train.append(data)
                         if mode=='test':
@@ -221,25 +223,25 @@ def generate_samples(params, t0):
     df_train=[]
     df_val=[]
     sample_count = params['sample_count']
-    data_dict = []
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     mfr=MNF_share_solver(num_task_config=params['task_agents'], num_comm_config=params['comm_agents'], channel=params['channel'], Kopts=Kopts)
+    comm_radio=(params['channel'].rango)*1.2
     for mode in ('train', 'test'):
         for i in range(sample_count[mode]):
             status = 'infeasible'
             
             while (status != 'optimal'):
-                comm_radio=(params['channel'].rango)*1.5
+
                 task_config = x_task_gen(comm_radio, params['task_agents'])
                 comm_config = x_comm_gen(comm_radio,params['comm_agents'], task_config)
-                config=np.vstack((task_config.numpy(), comm_config.numpy()))
-                adj=params['channel'].adjacency(config)
-                rate,_=params['channel'].predict(config)
+                #config=np.vstack((task_config.numpy(), comm_config.numpy()))
+                #adj=params['channel'].adjacency(config)
+                #rate,_=params['channel'].predict(config)
                 try:
-                    MFR, status=mfr.solve(task_config=task_config.numpy(), comm_config=comm_config.numpy())
+                    MFR, status,ai,Tau, rs=mfr.solve(task_config=task_config.numpy(), comm_config=comm_config.numpy())
                 except:	
-                     status = 'infeasible' 
+                    status = 'infeasible' 
 
                 if (status == 'optimal'):
                     if np.isnan(MFR) or np.isinf(MFR):
@@ -247,7 +249,7 @@ def generate_samples(params, t0):
                         status = 'infeasible'
                     else:
                         #'positions', 'types', 'edge_index','MFR'
-                        data = points_to_data(task_config,comm_config,adj,rate, MFR)
+                        data = points_to_data(task_config,comm_config, MFR)
 
                         if mode=='train':
                             df_train.append(data)
@@ -255,7 +257,7 @@ def generate_samples(params, t0):
                             df_train.append(data)
                         
                         duration_str = human_readable_duration(time.time()-t0)
-                    msg =console_width_str(f'generated {len(data_dict)} samples in {duration_str}')
+                    msg =console_width_str(f'generated {i} samples in {duration_str}')
                     print('\r' + msg + '\r', end='')
 
     with open(params['filename']+'_train.pt', 'wb') as f:
