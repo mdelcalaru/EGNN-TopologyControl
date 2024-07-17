@@ -275,7 +275,7 @@ class LinearModel:
 class expModel:
     """A channel mode that decays exponentialy with distance."""
 
-    def __init__(self, corte=10.0, N=4.0, alpha=3,umbral=0.125,indicatrix=False):
+    def __init__(self, corte=10.0, N=2.0, alpha=3,umbral=0.01,indicatrix=False):
         self.Ne=N
         self.corte = corte
         self.alpha = alpha

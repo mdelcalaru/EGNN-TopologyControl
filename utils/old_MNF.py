@@ -28,7 +28,7 @@ class MNF_share_solver():
     #self.update_channel(task_config, comm_config)
     # Define Variables for problem
     rs = cp.Variable(self.N*self.N*self.K,nonneg=True)
-    ai = cp.Variable((self.M,self.M),nonneg=True)
+    ai = cp.Variable((self.M,self.M))#,nonneg=True)
     Tau = cp.Variable((self.N,self.N),nonneg=True)
     A = cp.Variable((self.N,self.K))   
     mapK=[]
@@ -52,7 +52,7 @@ class MNF_share_solver():
     ai_mask[mapK[self.Kopts,0],mapK[self.Kopts,1]]=True	
 
     # Define funcion to max
-    Ce  = cp.sum(cp.log(ai[ai_mask]+1e-5))#/(self.M*(self.M-1))
+    Ce  = cp.sum(cp.log(ai[ai_mask]))#/(self.M*(self.M-1))
 
 
     # CONSTRAINS 
@@ -73,11 +73,11 @@ class MNF_share_solver():
     constraints += [cp.multiply(self.rate,Tau) >= B ]
    
     constraints += [ai[mapK[:,0],mapK[:,1]] <= A[mapK[:,0],indn] ]
-    constraints += [-ai[mapK[:,0],mapK[:,1]] <= A[mapK[:,1],indn] ]    
+    #constraints += [-ai[mapK[:,0],mapK[:,1]] <= A[mapK[:,1],indn] ]    
     constraints += [A[indx_AtoZero] == 0]
     constraints += [cp.diag(ai) == 1]
-    #constraints += [Tau <= 1]
-    constraints += [Tau[np.where(self.adjacency==0)] == 0]
+    constraints += [Tau <= 1]
+    #constraints += [Tau[np.where(self.adjacency==0)] == 0]
 
     constraints += [cp.diag(Tau) == 0]
 
