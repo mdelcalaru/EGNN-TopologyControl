@@ -14,8 +14,8 @@ import math
 from utils.MNF_NoSA import Simulation
 import pickle as pk
 
-num_experiments=50
-filename= f"experimentos_paper2/exp3/{num_experiments}Run_"
+num_experiments=10
+filename= f"experimentos_paper2/{num_experiments}Run_"
 # Set the floating-point precision
 np.set_printoptions(precision=3)
 #Set cuda device if available
@@ -23,11 +23,11 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #Set experiment parameters
 #Agents in the configuration
-task_agents=8
-comm_agents=5
+task_agents=3
+comm_agents=2
 total_agents=task_agents+comm_agents
-distance_coeficient=2.5
-#Channel definition
+distance_coeficient=2.0
+
 canal=expModel(indicatrix=True)
 Kopts=np.arange(task_agents*(task_agents-1))
 
@@ -60,7 +60,7 @@ while experiment < num_experiments:
     TA = x_task_gen(dist,task_agents)
     #TA=torch.tensor([[0.0,0.0],[0.0,dist],[3*dist/4,dist/2]])
 
-    NAi = x_comm_gen(dist*0.8, comm_agents, task_agents=TA).cpu().numpy()
+    NAi = x_comm_gen(dist, comm_agents, task_agents=TA).cpu().numpy()
     #NAi=torch.tensor([[3.0,dist]]).cpu().numpy()
 
     # Initialize and run Nacho's simulation
@@ -282,16 +282,16 @@ colors = ['lightblue', 'lightgreen']#, 'lightcoral', 'lightyellow' ]
 for patch, color in zip(bplot['boxes'], colors):
     patch.set_facecolor(color)
 
-with open(filename+'task_configs.pt', 'wb') as f:
-    pk.dump(TA, f)
-with open(filename+'ini_Comm_config.pt', 'wb') as f:
-    pk.dump(NAi, f)
-with open(filename+'EGNN_Comm_config.pt', 'wb') as f:
-    pk.dump(xNA_fin_EGNN, f)
-with open(filename+'L2_Comm_config.pt', 'wb') as f:
-    pk.dump(xNA_fin_maxL2, f)
-with open(filename+'nacho_Comm_config.pt', 'wb') as f:
-    pk.dump(xNA_fin_nacho, f)
+# with open(filename+'task_configs.pt', 'wb') as f:
+#     pk.dump(TA, f)
+# with open(filename+'ini_Comm_config.pt', 'wb') as f:
+#     pk.dump(NAi, f)
+# with open(filename+'EGNN_Comm_config.pt', 'wb') as f:
+#     pk.dump(xNA_fin_EGNN, f)
+# with open(filename+'L2_Comm_config.pt', 'wb') as f:
+#     pk.dump(xNA_fin_maxL2, f)
+# with open(filename+'nacho_Comm_config.pt', 'wb') as f:
+#     pk.dump(xNA_fin_nacho, f)
 with open(filename+'boxplotAik.pt', 'wb') as f:
     pk.dump(datosAik, f)
 with open(filename+'boxplotC.pt', 'wb') as f:

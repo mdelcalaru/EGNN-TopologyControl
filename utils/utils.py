@@ -209,6 +209,15 @@ def evalModelConvex(NA, TA):
   return rs, MNF, ai
 # self.Ce.value , self.prob.status, ai.value,Tau.value, rs.value
 
+def evalModelConvexSim(NA, TA):
+  K=TA.shape[0]
+  N=NA.shape[0]
+  canal=expModel(indicatrix=True)
+  Kopts=np.arange(K*(K-1))
+  mnf=MNF_share_solver(num_task_config=K, num_comm_config=N, channel=canal, Kopts=Kopts)
+  MNF, status, ai, Tau, rs=mnf.solve(task_config=TA.numpy(), comm_config=NA)
+  return MNF
+
 def evaluar_grilla(task_config):
     K=task_config.shape[0]
     canal=expModel(indicatrix=True)

@@ -54,7 +54,7 @@ class MNF_share_solver():
 
 
     # Define funcion to max
-    self.Ce  = cp.sum(cp.log(ai[ai_mask]))/(self.M*(self.M-1))
+    self.Ce  = cp.sum(cp.log(ai[ai_mask]+1e-5))#/(self.M*(self.M-1))
 
     # CONSTRAINS 
     constraints = []
@@ -76,7 +76,7 @@ class MNF_share_solver():
     constraints += [cp.diag(ai) == 1]
     constraints += [Tau[np.where(adj_mat==0)] == 0]
     constraints += [cp.diag(Tau) == 0]
-
+    constraints += [Tau <= 1]
     # Define problem 
     self.prob = cp.Problem(cp.Maximize(self.Ce), constraints)
 

@@ -19,7 +19,7 @@ class GCN_EG(torch.nn.Module):
         self.layers=torch.nn.ModuleList()
         in_feats_dim=2        
         for i in range(len(m_dims)):
-            self.layers.append(EGNN_Sparse(feats_dim=in_feats_dim,pos_dim=2,update_coors=update_coors,update_feats = update_feats,m_dim=m_dims[i],out_dim=output_dims[i], dropout=dropout, aggr=aggr,norm_coors=NormCoors))
+            self.layers.append(EGNN_Sparse(feats_dim=in_feats_dim,pos_dim=2,edge_attr_dim=1,update_coors=update_coors,update_feats = update_feats,m_dim=m_dims[i],out_dim=output_dims[i], dropout=dropout, aggr=aggr,norm_coors=NormCoors))
             if update_feats:
                 in_feats_dim=output_dims[i]
 #   
@@ -34,7 +34,7 @@ class GCN_EG(torch.nn.Module):
         # 1. Obtain node embeddings 
         xt=torch.cat([positions, x], dim=-1).float()
         for layer in self.layers:
-            xt = layer(xt, edge_index, edge_attr,batch)
+            xt = layer(xt, edge_index, edge_attr.float(),batch)
             
 #        x = self.conv1(xt, edge_index, edge_attr.float(),batch)
 #        x = self.conv2(x, edge_index, edge_attr.float(),batch)

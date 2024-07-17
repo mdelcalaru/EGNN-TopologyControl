@@ -8,13 +8,13 @@ import torch
 from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_directory = "./data/"
+data_directory = "./"#/data/4N/"
 cpus = os.cpu_count()
 
-config_dict = {
+config_dict = { 
     'optimizer': 'adam',
-    'output_dims': [32,32],
-    'm_dims': [32,32],
+    'output_dims': [16 ,32,16],
+    'm_dims': [16,32,64],
     'update_feats': True,
     'update_coors': False,
     'learning_rate': 0.001,
@@ -40,7 +40,7 @@ config_dict = {
 #print(model)
 
 model = LightningEGNN_net(**config_dict)
-print(model)
+#print(model)
 
 logger = pl_loggers.WandbLogger(log_model= 'all' ,project="new_EGNN", config=config_dict)
 train_loader, test_loader = build_dataset(batch_size=config_dict['batch_size'], dir=data_directory, cpus=cpus)

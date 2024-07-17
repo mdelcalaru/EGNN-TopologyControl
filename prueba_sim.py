@@ -21,7 +21,7 @@ import pickle
 from torch_geometric.data import Data
 from torch_geometric.utils import to_undirected
 from graph_model import LightningEGNN_net, grad_simulate_step
-from utils.utils import evaluar_grilla, evalModelConvex
+from utils.utils import evaluar_grilla, evalModelConvexSim
 from graph_model import evaluar_grilla_model
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -61,7 +61,7 @@ reconfig_agents_pos = np.random.rand(num_reconfig_agents, 2) * space_size
 #free_agents_scatter = ax.scatter(free_agents_pos[:, 0], free_agents_pos[:, 1], c='blue', label='Free Agents')
 #reconfig_agents_scatter = ax.scatter(reconfig_agents_pos[:, 0], reconfig_agents_pos[:, 1], c='red', label='Reconfig Agents')
 
-pasos_ajuste = 5
+pasos_ajuste = 1
 max_c = []
 c_config = []
 #def update(frame):
@@ -90,7 +90,7 @@ for experiment in range(1):
         
         # Reconfigurar agentes en función de los agentes libres
         for i in range(pasos_ajuste):
-            grad, y =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
+            grad =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
             reconfig_agents_pos += grad.numpy()
 
 
@@ -123,12 +123,12 @@ print(f"Total en {time.time()-t0} segundos")
 #ani = animation.FuncAnimation(fig, update, frames=100, interval=100, blit=True) 
 #plt.legend()
 #plt.show()
-file='experimento_trueValues_3T1N_1rep_5pasos.pkl'
+file='experimento_trueValues_3T1N_1rep_1pasos.pkl'
 with open(file, 'wb') as f:
     pickle.dump(estadistica, f)
 
 #model_y = np.array(model_y)
-'''
+
 fig2 = plt.figure()
 plt.plot(max_c, label='Max C',linewidth=10)
 plt.plot(model_y[:,0,0], label='Model Y',linewidth=7)
@@ -139,4 +139,4 @@ plt.ylabel('Configuration Socre')
 #plt.ylim(-4, 1)
 plt.legend()
 plt.show()
-'''	
+	

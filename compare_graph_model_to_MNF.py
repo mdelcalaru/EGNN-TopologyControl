@@ -23,7 +23,7 @@ canal=expModel(indicatrix=True)
 
 
 #artifact_name="model-o2aeih18:v19" #30k datos
-artifact_name="model-z32ipte8:v9" #10k datos
+artifact_name="model-hyq1anbx:v19" #
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 
@@ -69,7 +69,7 @@ for c_i, i in enumerate(x):
 fig=plt.figure(figsize=(5, 10))
 gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1.])
 ax0=plt.subplot(gs[0])
-im= ax0.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]],vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
+im= ax0.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]],vmax=c_map.max(), vmin=c_map.min())
 
 #ax0.set_title('EGNN', fontsize=17)
 ax0.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)

@@ -44,7 +44,7 @@ def build_dataset(batch_size, cpus, dir):
 
 
 def edge_index_gen(task,comm,adj,rate):
-    adjacency_matrix =adj*rate
+    adjacency_matrix =rate*adj
     edge_index, edge_weight= to_edge_index(adjacency_matrix.to_sparse())
     return edge_index, edge_weight
 
@@ -63,11 +63,11 @@ def points_to_data(TA,NA,mfr=None):
     edge_index,edge_weights=to_undirected(edge_index,edge_attr=edge_weights)
 
     if mfr is None:
-        #data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions)
-        data=Data(x=types, edge_index=edge_index, pos=positions)
+        data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions)
+        #data=Data(x=types, edge_index=edge_index, pos=positions)
     else:
-        #data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions, y=mfr)
-        data=Data(x=types, edge_index=edge_index, pos=positions, y=mfr)
+        data=Data(x=types, edge_index=edge_index,edge_attr=edge_weights, pos=positions, y=mfr)
+        #data=Data(x=types, edge_index=edge_index, pos=positions, y=mfr)
 
     return data
   
@@ -101,11 +101,11 @@ def x_comm_gen(r,n, task_agents, rndm_seed=None):
     dist_max=np.array([max_task_agents[0]-min_task_agents[0],max_task_agents[1]-min_task_agents[1]])
     centro=torch.tensor([min_task_agents[0]+dist_max[0]/2,(min_task_agents[1]+dist_max[1]/2)])
     x_comm=torch.zeros((n,2))
-    theta = torch.linspace(0, 2*np.pi, 360)
+    theta = torch.linspace(0, np.pi*2, 360)
     for i in range(n):
         phi=theta[np.random.randint(0, 360-1, 1)][0]
-        x_comm[i,0] = dist_max[0]/2 * torch.cos(phi)*0.4+centro[0]
-        x_comm[i,1] = dist_max[1]/2 * torch.sin(phi)*0.4+centro[1]
+        x_comm[i,0] = dist_max[0]/2 * torch.cos(phi)+centro[0]
+        x_comm[i,1] = dist_max[1]/2 * torch.sin(phi)+centro[1]
 
     return x_comm
 
@@ -207,7 +207,7 @@ def generate_large_samples(params, t0):
                         if mode=='train':
                             df_train.append(data)
                         if mode=='test':
-                            df_train.append(data)
+                            df_val.append(data)
                         
                         duration_str = human_readable_duration(time.time()-t0)
                     msg =console_width_str(f'generated {i} {mode} samples in {duration_str}')
@@ -226,7 +226,7 @@ def generate_samples(params, t0):
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     mfr=MNF_share_solver(num_task_config=params['task_agents'], num_comm_config=params['comm_agents'], channel=params['channel'], Kopts=Kopts)
-    comm_radio=(params['channel'].rango)*1.2
+    comm_radio=(params['channel'].rango)*1.5
     for mode in ('train', 'test'):
         for i in range(sample_count[mode]):
             status = 'infeasible'
@@ -254,7 +254,7 @@ def generate_samples(params, t0):
                         if mode=='train':
                             df_train.append(data)
                         if mode=='test':
-                            df_train.append(data)
+                            df_val.append(data)
                         
                         duration_str = human_readable_duration(time.time()-t0)
                     msg =console_width_str(f'generated {i} samples in {duration_str}')
