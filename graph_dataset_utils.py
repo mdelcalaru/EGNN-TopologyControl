@@ -226,7 +226,7 @@ def generate_samples(params, t0):
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
     mfr=MNF_share_solver(num_task_config=params['task_agents'], num_comm_config=params['comm_agents'], channel=params['channel'], Kopts=Kopts)
-    comm_radio=(params['channel'].rango)*1.5
+    comm_radio=(params['channel'].rango)*1.0
     for mode in ('train', 'test'):
         for i in range(sample_count[mode]):
             status = 'infeasible'
@@ -257,7 +257,7 @@ def generate_samples(params, t0):
                             df_val.append(data)
                         
                         duration_str = human_readable_duration(time.time()-t0)
-                    msg =console_width_str(f'generated {i} samples in {duration_str}')
+                    msg =console_width_str(f'generated {i} {mode} samples in {duration_str}')
                     print('\r' + msg + '\r', end='')
 
     with open(params['filename']+'_train.pt', 'wb') as f:

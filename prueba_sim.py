@@ -32,7 +32,7 @@ canal=expModel(indicatrix=True)
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
 
-artifact_name="model-o2aeih18:v19" #cosmic-wind-321
+artifact_name="model-ja48m02m:v19" #cosmic-wind-321
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 
@@ -101,7 +101,7 @@ for experiment in range(1):
         max_c.append(evaluar_grilla(task_config=free_agents_pos))
         #max_model_y.append(evaluar_grilla_model(task_config=torch.from_numpy(free_agents_pos),model=model,device=device))
         try:
-            c_config.append(evalModelConvex(TA=torch.from_numpy(free_agents_pos), NA=torch.from_numpy(reconfig_agents_pos)))
+            c_config.append(evalModelConvexSim(TA=torch.from_numpy(free_agents_pos), NA=torch.from_numpy(reconfig_agents_pos)))
         except:
             c_config.append(-4.0)
             

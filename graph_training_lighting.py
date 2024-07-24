@@ -8,19 +8,19 @@ import torch
 from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_directory = "./"#/data/4N/"
+data_directory = "./data_nuevo_canal/"#/data/4N/"
 cpus = os.cpu_count()
 
 config_dict = { 
     'optimizer': 'adam',
-    'output_dims': [16 ,32,16],
-    'm_dims': [16,32,64],
+    'output_dims': [64 ,64],
+    'm_dims': [32,32],
     'update_feats': True,
     'update_coors': False,
     'learning_rate': 0.001,
     'dropout': 0.0,
-    'batch_size': 10, 
-    'epochs': 10,  
+    'batch_size': 20, 
+    'epochs': 20,  
     'NormCoors':False, 
     'aggr':'mean',  
     }

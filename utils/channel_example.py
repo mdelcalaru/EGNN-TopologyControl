@@ -1,9 +1,11 @@
-from channel_model import expModel
+from matplotlib import cm
+from channel_model import expModel, PiecewisePathLossModel
 import numpy as np
 import matplotlib.pyplot as plt
 
 #cm = expModel(alpha=0.7)
-cm_ind=expModel(indicatrix=True)
+#cm_ind=expModel(indicatrix=True)
+cm_ind=PiecewisePathLossModel(print_values=False)
 def Capacity(x, y, cm):
     rate, var = cm.predict(np.vstack((x, y)))
     return rate[0,1]
@@ -11,11 +13,10 @@ def Capacity(x, y, cm):
 def adjacency(x, y, cm):
     return cm.adjacency(np.vstack((x, y)))
 
-print('beta', cm_ind.beta)
 
 x = np.zeros((80,2))
 y = np.array([0,0])
-x[:,0]=np.linspace(0, 30, 80)
+x[:,0]=np.linspace(0, 60, 80)
 l=[]
 l2=[]
 l3=[]
@@ -23,6 +24,7 @@ l3=[]
 for i in range(x.shape[0]):
     l.append(Capacity(x[i,:], y, cm_ind))
     adj=adjacency(x[i,:], y, cm_ind)
+
     l2.append(adj[0,1])
     adj_ind=adjacency(x[i,:], y, cm_ind)
     l3.append(adj_ind[0,1])

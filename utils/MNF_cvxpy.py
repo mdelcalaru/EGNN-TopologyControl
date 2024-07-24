@@ -87,4 +87,4 @@ class MNF_share_solver():
     #print("mu_=, %s" %constraints[0].dual_value.reshape((self.N,self.N)))
     #print("la_{1}=, %s" %constraints[1].dual_value)
     #print("mu_{2}=, %s" %constraints[19])
-    return self.Ce.value , self.prob.status, ai.value,Tau.value, rs.value
+    return self.Ce.value , self.prob.status, ai.value[ai_mask],Tau.value, rs.value

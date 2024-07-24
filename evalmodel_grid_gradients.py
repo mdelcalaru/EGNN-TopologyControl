@@ -25,7 +25,7 @@ canal=expModel(indicatrix=True)
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
 
-artifact_name="model-o2aeih18:v19" #cosmic-wind-321
+artifact_name="model-ja48m02m:v19" #
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 

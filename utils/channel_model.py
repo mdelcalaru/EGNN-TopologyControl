@@ -20,7 +20,7 @@ class PathLossModel:
 
     """
 
-    def __init__(self, print_values=True, t=0, n0=-70.0, n=2.52, l0=-53.0, a=0.2, b=6.0):
+    def __init__(self, print_values=True, t=0, n0=-70.0, n=2.52, l0=-53.0, a=0.2, b=6.0, umbral=0.01):
         self.t = t                  # transmit power (dBm)
         self.L0 = l0                # hardware specific constant (dB)
         self.n = n                  # decay rate
@@ -29,7 +29,7 @@ class PathLossModel:
         self.b = b                  # sigmoid parameter 2
 
         self.C = np.sqrt(dbm2mw(self.t + self.L0 - self.N0))
-
+        self.umbral = umbral
         if print_values is True:
             print('t  = %.3f' % self.t)
             print('L0 = %.3f' % self.L0)
@@ -101,6 +101,18 @@ class PathLossModel:
 
     def calculate_range(self, max_range=100):
         return toms748(lambda a : self.predict_link(np.zeros((2,)), np.asarray([a,0]))[0]-1e-10, 1, max_range)
+    
+    def adjacency(self, x):
+      # if self.indicatrix:
+      rate, var= self.predict(x)
+      adj=np.zeros_like(rate)
+      adj[np.where(rate > self.umbral)] = 1
+      return adj    
+      # else:  
+      #   dist = spatial.distance_matrix(x, x)
+      #   adj= 1-1/(1+np.exp(-self.alpha*(dist-self.beta)))
+      #   adj[np.eye(dist.shape[0], dtype=bool)] = 0.0
+      #   return adj
 
 
 class PiecewisePathLossModel(PathLossModel):
@@ -206,6 +218,14 @@ class PiecewisePathLossModel(PathLossModel):
             return self.m / dist * diff
         else:
             return PathLossModel.derivative(self, xi, xj)
+        
+      
+    def adjacency(self, x):
+      # if self.indicatrix:
+      rate, var= self.predict(x)
+      adj=np.zeros_like(rate)
+      adj[np.where(rate > 0)] = 1
+      return adj  
 
 
 class LinearModel:

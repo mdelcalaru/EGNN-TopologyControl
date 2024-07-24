@@ -13,9 +13,10 @@ from utils.connectivity_optimization import ConnectivityOpt
 import math
 from utils.MNF_NoSA import Simulation
 import pickle as pk
-
+import os
+from datetime import datetime
 num_experiments=10
-filename= f"experimentos_paper2/{num_experiments}Run_"
+
 # Set the floating-point precision
 np.set_printoptions(precision=3)
 #Set cuda device if available
@@ -23,16 +24,21 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #Set experiment parameters
 #Agents in the configuration
-task_agents=3
-comm_agents=2
+task_agents=8
+comm_agents=5
 total_agents=task_agents+comm_agents
 distance_coeficient=2.0
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+folder_name=f"run_{timestamp}"
+filename = f"{folder_name}/{num_experiments}Runs_dist{int(10*distance_coeficient)}_T{task_agents}N{comm_agents}"
+os.makedirs(folder_name, exist_ok=True)
 
 canal=expModel(indicatrix=True)
 Kopts=np.arange(task_agents*(task_agents-1))
 
 #Load EGNN Model
-artifact_name="model-o2aeih18:v19"
+#artifact_name="model-o2aeih18:v19"
+artifact_name="model-ja48m02m:v19" #
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
@@ -74,7 +80,7 @@ while experiment < num_experiments:
     xNA_fin_maxL2=copt_config[-comm_agents:,:]
 
     # Run EGNN optimization
-    xNA_fin_EGNN = optimize_NA(NAi, model, TA, device, max_iter=1500, lr=0.3)
+    xNA_fin_EGNN = optimize_NA(NAi, model, TA, device, max_iter=2500, lr=0.3)
 
     #Verify MFR value for all final configurations:
     ini_feas=True
@@ -228,7 +234,7 @@ C_dif_array_nacho = np.array(C_dif_nacho)
 aik_dif_array_nacho=np.array(aik_dif_nacho)
 aik_dif_array_L2=np.array(aik_dif_L2)
 
-vary=7.5
+vary=100
 
 fig3, ax3 = plt.subplots(1,2,figsize=(6,3))  # Set the figure size
 
