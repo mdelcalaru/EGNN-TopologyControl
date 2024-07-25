@@ -17,30 +17,16 @@ from torch_geometric.utils import to_undirected
 import wandb
 from graph_dataset_utils import points_to_data
 from matplotlib import gridspec
+
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-canal=expModel(indicatrix=True)
-
-
-artifact_name="model-6wbxzfmo:v19" #30k datos
-artifact_name="model-ja48m02m:v19" #
-
-artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
-model_file = Path(artifact_dir)
-
-if not model_file.exists():
-    import wandb
-    run = wandb.init()
-    artifact = run.use_artifact("iie-sc/new_EGNN/"+artifact_name , type='model')
-    artifact_dir = artifact.download()     
-
-
-
-#artifact_file="./model/EGNN_best_model.ckpt"
-#model_file = Path(artifact_file)
+'''Load Model'''
+artifact_file="./model/EGNN_best_model.ckpt"
+model_file = Path(artifact_file)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
-
+'''Config experiment'''	
+canal=expModel(indicatrix=True)
 dist=(canal.rango)*1.0
 task_agents=3
 comm_agents=1
@@ -59,9 +45,6 @@ for c_i, i in enumerate(x):
     for c_j, j in enumerate(y):
         NA[0,0]=i
         NA[0,1]=j
-        #positions = torch.vstack((TA,NA))
-        #adj =canal.adjacency(positions.numpy())
-        #rate, _=canal.predict(positions.numpy())
         data = points_to_data(TA=TA, NA=NA).to(device)
         y_model=model.evaluate(data)
         c_map[c_i,c_j]=y_model[0].item()
@@ -72,21 +55,21 @@ gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1.])
 ax0=plt.subplot(gs[0])
 im= ax0.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]],vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
 
-#ax0.set_title('EGNN', fontsize=17)
+ax0.set_title('EGNN', fontsize=17)
 ax0.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
-#ax0.set_xlabel('x coordinate for nodes', fontsize=15)
-#ax0.set_ylabel('y coordinate for nodes', fontsize=15)
+ax0.set_xlabel('x coordinate for nodes', fontsize=15)
+ax0.set_ylabel('y coordinate for nodes', fontsize=15)
 
 
 ax1 = plt.subplot(gs[1])
 im2= ax1.imshow(c_mapCVXPY, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]],vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
 cbar=fig.colorbar(im2,cax=ax1.inset_axes([1.05, 0, 0.05, 1]))
 cbar.ax.tick_params(labelsize=10)
-#cbar.set_ticks([-60,-45,-30,-15])
+cbar.set_ticks([-60,-45,-30,-15])
 ax1.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
-#ax1.set_xlabel('x coordinate for nodes', fontsize=15)
-#ax1.set_ylabel('y coordinate for nodes')
-#fig.suptitle('Heatmap for one network node placement', fontsize=20)
+ax1.set_xlabel('x coordinate for nodes', fontsize=15)
+ax1.set_ylabel('y coordinate for nodes')
+fig.suptitle('Heatmap for one network node placement', fontsize=20)
 
 ax0.set_ylim(-0.3, dist+0.3)
 ax1.set_ylim(-0.3, dist+0.3)

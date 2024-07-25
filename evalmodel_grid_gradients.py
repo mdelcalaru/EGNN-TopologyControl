@@ -20,26 +20,13 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 '''Load Model'''
 
-canal=expModel(indicatrix=True)
-#iie-sc/EGNN/model-mlzmc8z4:v9
-#artifact_file="./model/EGNN_best_model.ckpt"
-#model_file = Path(artifact_file)
-
-artifact_name="model-ja48m02m:v19" #
-artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
-model_file = Path(artifact_dir)
-
-if not model_file.exists():
-    import wandb
-    run = wandb.init()
-    artifact = run.use_artifact("iie-sc/new_EGNN/"+artifact_name , type='model')
-    artifact_dir = artifact.download()     
-
+artifact_file="./model/EGNN_best_model.ckpt"
+model_file = Path(artifact_file)
 
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
 
-
+canal=expModel(indicatrix=True)
 dist=(canal.rango)*1.0
 TA=torch.tensor([[0.0,0.0],[dist,0.0],[0.0,dist]])
 x=np.linspace(0,(dist),int(2*((dist))+1))
@@ -60,9 +47,6 @@ grid_grads_V=[]
 for c_i, i in enumerate(x):
     for c_j, j in enumerate(y):
         NA=torch.tensor([[i,j]],requires_grad=True)
-        #positions = torch.vstack((TA,NA.detach()))  
-        #adj =canal.adjacency(positions.numpy())
-        #rate, _=canal.predict(positions.numpy())
         data = points_to_data(TA=TA, NA=NA).to(device)
         xt, edge_index, edge_attr, positions, batch= data.x, data.edge_index, data.edge_attr, data.pos, data.batch
         y_model=model.forward(xt, edge_index, edge_attr,positions,batch)
@@ -74,37 +58,13 @@ for c_i, i in enumerate(x):
         grid_grads_V.append(NA.grad[0,1])
 
 fig =plt.figure(figsize=(10,10))
-# Plot the matrix with the origin at the bottom left
-#fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
-'''
-ax0 = fig.add_subplot(1, 2, 1)
-divider0 = make_axes_locatable(ax0)
-cax0 = divider0.append_axes("right", size="5%", pad=0.05)
 
-im0= ax0.imshow(c_map.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_map.max(), vmin=c_map.min())
-
-ax0.set_xlabel('x coordinate for nodes', fontsize=15)
-ax0.set_ylabel('y coordinate for nodes', fontsize=15)
-ax0.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
-ax0.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
-fig.colorbar(im0,cax=cax0)
-
-ax0.quiver(Xm,Ym, grid_grads_U, grid_grads_V, color='red')
-#ax0.set_xticks([])
-#ax0.set_yticks([])
-ax0.set_ylim(-0.3, dist+0.3)
-ax0.set_xlim(-0.3, dist+0.3)
-ax0.set_facecolor("white")
-'''
 ax1 = fig.add_subplot(1, 1, 1)
-#divider1 = make_axes_locatable(ax1)
-#cax1 = divider1.append_axes("right", size="5%", pad=0.05)
 
-#im1= ax1.imshow(c_mapCVXPY.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
 im1= ax1.imshow(c_map.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_map.max(), vmin=c_map.min())
-#ax1.set_xlabel('x coordinate for nodes', fontsize=15)
-#ax1.set_ylabel('y coordinate for nodes', fontsize=15)
-#ax1.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
+ax1.set_xlabel('x coordinate for nodes', fontsize=15)
+ax1.set_ylabel('y coordinate for nodes', fontsize=15)
+ax1.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
 ax1.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
 #fig.colorbar(im1,cax=cax1)
 

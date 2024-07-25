@@ -224,8 +224,8 @@ def evaluar_grilla(task_config):
     Kopts=np.arange(K*(K-1))
     dist=(canal.rango)*1.0
     rango=0.5
-    x=np.linspace(rango,(dist-rango),int(2*((dist))+1))
-    y=np.linspace(rango,(dist-rango),int(2*((dist))+1))
+    x=np.linspace(rango,(dist-rango),int(1*((dist))+1))
+    y=np.linspace(rango,(dist-rango),int(1*((dist))+1))
     NA=np.array([[0.5,0.5]])
     mnf=MNF_share_solver(num_task_config=K, num_comm_config=1, channel=canal, Kopts=Kopts)
     c_map=np.empty((len(x),len(y)))
@@ -234,11 +234,12 @@ def evaluar_grilla(task_config):
             NA[0,0]=i
             NA[0,1]=j
             #print(NA)
-            try: 
-                MFR, status=mnf.solve(task_config=task_config, comm_config=NA)
-                c_map[c_i,c_j]=MFR
-            except:
-                pass
-
+            #try: 
+            MFR, status,_,_,_=mnf.solve(task_config=task_config, comm_config=NA)
+            c_map[c_i,c_j]=MFR
+        
+        #except:
+        #        pass
+            
     return np.max(c_map)
 
