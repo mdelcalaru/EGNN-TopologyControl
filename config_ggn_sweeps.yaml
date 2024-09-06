@@ -5,24 +5,26 @@ metric:
   name: train_loss
 parameters:
   data_directory:
-    value: "data/"
+    value: "./data_nuevo_canal/model_train/"
   optimizer:
     value: adam
   dropout:
     value: 0 
   update_coors: 
     value: False
+  update_feats: 
+    value: True  
   output_dims:
-    values: [[16,32],[32, 32 ], [32, 16]]
+    values: [[2,2],[10,10], [32,32]]
   m_dims:
-    value: [16, 16]
+    values: [[10,10],[16, 16],[32,32]]
   learning_rate:
-    values: [0.01,0.005,0.001]
-  batch_size:
-    values: [20,10]
+    values: [0.01, 0.05]
+  batch_size: 
+    values: [20,10,5]
   epochs:
     value: 3
   NormCoors:
     value: False
   aggr:
-    value: 'add'
+    values: ['mean','add']

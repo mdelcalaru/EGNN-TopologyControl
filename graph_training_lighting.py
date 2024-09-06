@@ -8,21 +8,21 @@ import torch
 from pathlib import Path
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-data_directory = "./data_nuevo_canal/"#/data/4N/"
+data_directory = "data_nuevo_canal/20K_samples_3t2n_3t1n_graphcvxpy/"#/data/4N/"
 cpus = os.cpu_count()
 
 config_dict = { 
     'optimizer': 'adam',
-    'output_dims': [64 ,64],
-    'm_dims': [32,32],
+    'output_dims': [4 ,8],
+    'm_dims': [16,16],
     'update_feats': True,
     'update_coors': False,
-    'learning_rate': 0.001,
+    'learning_rate': 0.005,
     'dropout': 0.0,
-    'batch_size': 20, 
-    'epochs': 20,  
+    'batch_size': 10, 
+    'epochs': 100,  
     'NormCoors':False, 
-    'aggr':'mean',  
+    'aggr':'add',  
     }
 
 #artifact_name="model-p5qvg23t:v9"

@@ -43,22 +43,21 @@ def build_dataset(batch_size, cpus, dir):
     return train_loader, test_loader
 
 
-def edge_index_gen(task,comm,adj,rate):
-    adjacency_matrix =rate*adj
+def edge_index_gen(adj,rate):
+    adjacency_matrix =adj*rate
     edge_index, edge_weight= to_edge_index(adjacency_matrix.to_sparse())
     return edge_index, edge_weight
 
-def points_to_data(TA,NA,mfr=None):
+def points_to_data(TA,NA,canal,mfr=None):
     task_agents=TA.shape[0]
     comm_agents=NA.shape[0]
     positions = torch.vstack((TA,NA))
-    canal=expModel(indicatrix=True)
-    adj =canal.adjacency(positions.detach().numpy())
-    rate, _=canal.predict(positions.detach().numpy())
+    adj=canal.adjacency(positions.detach().numpy())
+    rate,_=canal.predict(positions.detach().numpy())
     types=torch.zeros((task_agents+comm_agents,2))
     types[0:task_agents,0]=1
     types[task_agents:,1]=1
-    edge_index, edge_weights = edge_index_gen(task_agents,comm_agents, adj=torch.from_numpy(adj), rate=torch.from_numpy(rate))
+    edge_index, edge_weights = edge_index_gen(adj=torch.from_numpy(adj), rate=torch.from_numpy(rate))
     
     edge_index,edge_weights=to_undirected(edge_index,edge_attr=edge_weights)
 
@@ -70,6 +69,7 @@ def points_to_data(TA,NA,mfr=None):
         #data=Data(x=types, edge_index=edge_index, pos=positions, y=mfr)
 
     return data
+ 
   
 def x_circle(r, n):
     x_=torch.zeros((n,2))
@@ -223,9 +223,8 @@ def generate_samples(params, t0):
     df_train=[]
     df_val=[]
     sample_count = params['sample_count']
-    Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
-    Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
-    mfr=MNF_share_solver(num_task_config=params['task_agents'], num_comm_config=params['comm_agents'], channel=params['channel'], Kopts=Kopts)
+    #Kopts=np.arange(params['task_agents']*(params['task_agents']-1))
+    #mfr=MNF_share_solver(num_task_config=params['task_agents'], num_comm_config=params['comm_agents'], channel=params['channel'], Kopts=Kopts)
     comm_radio=(params['channel'].rango)*1.0
     for mode in ('train', 'test'):
         for i in range(sample_count[mode]):
@@ -235,11 +234,11 @@ def generate_samples(params, t0):
 
                 task_config = x_task_gen(comm_radio, params['task_agents'])
                 comm_config = x_comm_gen(comm_radio,params['comm_agents'], task_config)
-                #config=np.vstack((task_config.numpy(), comm_config.numpy()))
-                #adj=params['channel'].adjacency(config)
-                #rate,_=params['channel'].predict(config)
+                config=np.vstack((task_config.numpy(), comm_config.numpy()))
+                adj=params['channel'].adjacency(config)
+                rate,_=params['channel'].predict(config)
                 try:
-                    MFR, status,ai,Tau, rs=mfr.solve(task_config=task_config.numpy(), comm_config=comm_config.numpy())
+                    MFR, status=MNF_graph_solver(params['task_agents'], params['comm_agents'], adj,rate)
                 except:	
                     status = 'infeasible' 
 
@@ -249,7 +248,7 @@ def generate_samples(params, t0):
                         status = 'infeasible'
                     else:
                         #'positions', 'types', 'edge_index','MFR'
-                        data = points_to_data(task_config,comm_config, MFR)
+                        data = points_to_data(task_config,comm_config,  params['channel'], MFR)
 
                         if mode=='train':
                             df_train.append(data)

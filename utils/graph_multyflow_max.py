@@ -89,7 +89,7 @@ def MNF_graph_solver(num_task_config, num_comm_config, adj,rate):
         constraints+=[1-sum(t for t in node.taus)-sum(nt for nt in neighs_taus) >=0]
 
 
-    logsum=cp.sum(cp.log(ak+1e-6))#/K
+    logsum=cp.sum(cp.log(ak+1e-6))/K
     prob = cp.Problem(cp.Maximize(logsum), constraints)
     prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_IPAR_INTPNT_SOLVE_FORM':   'MSK_SOLVE_DUAL'} )
     #prob.solve(solver=cp.SCS)#,feastol=1e-24)

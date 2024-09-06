@@ -20,8 +20,19 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 '''Load Model'''
 
-artifact_file="./model/EGNN_best_model.ckpt"
-model_file = Path(artifact_file)
+#artifact_file="./model/EGNN_best_model.ckpt"
+#model_file = Path(artifact_file)
+artifact_name="model-8a7a7xut:v99"
+#  artifact_name="model-nmj8b857:v19" 
+artifact_dir="./artifacts/" + artifact_name +"/model.ckpt"
+model_file = Path(artifact_dir)
+
+if not model_file.exists():
+    import wandb
+    run = wandb.init()
+    artifact = run.use_artifact("iie-sc/new_EGNN/"+artifact_name , type='model')
+    artifact_dir = artifact.download()    
+
 
 model =LightningEGNN_net.load_from_checkpoint(model_file)
 #print(model)
@@ -29,12 +40,12 @@ model =LightningEGNN_net.load_from_checkpoint(model_file)
 canal=expModel(indicatrix=True)
 dist=(canal.rango)*1.0
 TA=torch.tensor([[0.0,0.0],[dist,0.0],[0.0,dist]])
-x=np.linspace(0,(dist),int(2*((dist))+1))
-y=np.linspace(0,(dist),int(2*((dist))+1))
+x=np.linspace(0,(dist),int(((dist))+1))
+y=np.linspace(0,(dist),int(((dist))+1))
 task_agents=3
 comm_agents=1
 
-with open('cvxpy_examples/c_mapCVXPY_map.pkl', 'rb') as f:
+with open('cvxpy_examples/graph_map.pkl', 'rb') as f:
     c_mapCVXPY = pickle.load(f)
 
 c_map=np.empty((len(x),len(y)))
@@ -47,7 +58,7 @@ grid_grads_V=[]
 for c_i, i in enumerate(x):
     for c_j, j in enumerate(y):
         NA=torch.tensor([[i,j]],requires_grad=True)
-        data = points_to_data(TA=TA, NA=NA).to(device)
+        data = points_to_data(TA=TA, NA=NA, canal=canal).to(device)
         xt, edge_index, edge_attr, positions, batch= data.x, data.edge_index, data.edge_attr, data.pos, data.batch
         y_model=model.forward(xt, edge_index, edge_attr,positions,batch)
         c_map[c_i,c_j]=y_model[0].item()
@@ -59,12 +70,12 @@ for c_i, i in enumerate(x):
 
 fig =plt.figure(figsize=(10,10))
 
-ax1 = fig.add_subplot(1, 1, 1)
+ax1 = fig.add_subplot(1, 2, 1)
 
-im1= ax1.imshow(c_map.T, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_map.max(), vmin=c_map.min())
+im1= ax1.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_map.max(), vmin=c_map.min())
 ax1.set_xlabel('x coordinate for nodes', fontsize=15)
 ax1.set_ylabel('y coordinate for nodes', fontsize=15)
-ax1.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
+ax1.set_title(r"EGNN gradients over net $P(\boldsymbol{x})$",fontsize=20)
 ax1.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
 #fig.colorbar(im1,cax=cax1)
 
@@ -74,6 +85,22 @@ ax1.set_yticks([])
 ax1.set_ylim(-0.3, dist+0.3)
 ax1.set_xlim(-0.3, dist+0.3)
 ax1.set_facecolor("white")
+
+ax2 = fig.add_subplot(1, 2, 2)
+
+im1= ax2.imshow(c_mapCVXPY, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
+ax2.set_xlabel('x coordinate for nodes', fontsize=15)
+ax2.set_ylabel('y coordinate for nodes', fontsize=15)
+ax2.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
+ax2.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
+#fig.colorbar(im1,cax=cax2)
+
+ax2.quiver(Xm,Ym, grid_grads_U, grid_grads_V, color='red')
+ax2.set_xticks([])
+ax2.set_yticks([])
+ax2.set_ylim(-0.3, dist+0.3)
+ax2.set_xlim(-0.3, dist+0.3)
+ax2.set_facecolor("white")
 
 plt.tight_layout()
 	
