@@ -18,19 +18,33 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from graph_dataset_utils import points_to_data
 import pickle
 from torch_geometric.data import Data
-from graph_model import LightningEGNN_net, grad_simulate_step
+from graph_model import LightningEGNN_net, grad_simulate_stepY
 from utils.utils import evaluar_grilla, evalModelConvexSim, human_readable_duration
 from utils.connectivity_optimization import ConnectivityOpt
 
 
 device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# '''Load Model'''
+# artifact_file="./model/EGNN_best_model.ckpt"
+# model_file = Path(artifact_file)
+# model =LightningEGNN_net.load_from_checkpoint(model_file)
+# #print(model)
 '''Load Model'''
-artifact_file="./model/EGNN_best_model.ckpt"
-model_file = Path(artifact_file)
-model =LightningEGNN_net.load_from_checkpoint(model_file)
-#print(model)
 
+artifact_name="model-ctt982k5:v99"
+#  artifact_name="model-nmj8b857:v19" 
+artifact_dir="./artifacts/" + artifact_name +"/model.ckpt"
+model_file = Path(artifact_dir)
+
+if not model_file.exists():
+    import wandb
+    run = wandb.init()
+    artifact = run.use_artifact("iie-sc/new_EGNN/"+artifact_name , type='model')
+    artifact_dir = artifact.download()    
+
+
+model =LightningEGNN_net.load_from_checkpoint(model_file)
 # Configuración inicial
 canal=expModel(indicatrix=True)
 dist=(canal.rango)*1.5
@@ -42,8 +56,8 @@ space_size = dist
 free_agents_pos = np.random.rand(num_free_agents, 2) * space_size
 reconfig_agents_pos = np.random.rand(num_reconfig_agents, 2) * space_size
 
-rep=10
-pasos_ajuste = 5
+rep=1
+pasos_ajuste = 2
 max_c = []
 c_config = []
 estadistica={}
@@ -76,7 +90,7 @@ for experiment in range(rep):
         # Reconfigure agents using our model
         tE=time.time()
         for i in range(pasos_ajuste):
-            grad =grad_simulate_step(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device, lr=0.3)
+            grad =grad_simulate_stepY(NA=reconfig_agents_pos, model=model, TA=torch.from_numpy(free_agents_pos), device=device,canal=canal, lr=0.9)
             reconfig_agents_pos += grad.numpy()
 
         print(f"Ours {experiment} en {time.time()-tE}")
@@ -95,7 +109,7 @@ for experiment in range(rep):
 
 print(f"Total en {time.time()-t0} segundos") 
 
-file=f'experimento_trueValues_{num_free_agents}T{num_reconfig_agents}N_{rep}rep_{pasos_ajuste}pasos.pkl'
+file=f'experimento_sinNorm_{num_free_agents}T{num_reconfig_agents}N_{rep}rep_{pasos_ajuste}pasos.pkl'
 
 with open(file, 'wb') as f: 
     pickle.dump(estadistica, f)

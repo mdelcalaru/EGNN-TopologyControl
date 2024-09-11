@@ -6,7 +6,8 @@ import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.colors import Normalize
 import networkx as nx
-from .MNF_cvxpy import MNF_share_solver
+#from .MNF_cvxpy import MNF_share_solver
+from utils.graph_multyflow_max import MNF_graph_solver
 from .channel_model import expModel
 from torch_geometric.utils import to_networkx
 
@@ -199,44 +200,36 @@ def graph_plot(data):
 
 
 
-def evalModelConvex(NA, TA):
-  K=TA.shape[0]
-  N=NA.shape[0]
-  canal=expModel(indicatrix=True)
-  Kopts=np.arange(K*(K-1))
-  mnf=MNF_share_solver(num_task_config=K, num_comm_config=N, channel=canal, Kopts=Kopts)
-  MNF, status, ai, Tau, rs=mnf.solve(task_config=TA.numpy(), comm_config=NA)
-  return rs, MNF, ai
-# self.Ce.value , self.prob.status, ai.value,Tau.value, rs.value
 
 def evalModelConvexSim(NA, TA):
-  K=TA.shape[0]
-  N=NA.shape[0]
-  canal=expModel(indicatrix=True)
-  Kopts=np.arange(K*(K-1))
-  mnf=MNF_share_solver(num_task_config=K, num_comm_config=N, channel=canal, Kopts=Kopts)
-  MNF, status, ai, Tau, rs=mnf.solve(task_config=TA.numpy(), comm_config=NA)
-  return MNF
+    K=TA.shape[0]
+    N=NA.shape[0]
+    canal=expModel(indicatrix=True)
+    config=np.vstack((TA, NA))
+    adj=canal.adjacency(config)
+    rate,_=canal.predict(config)
+    MNF, status=MNF_graph_solver(num_task_config=K, num_comm_config=N, adj=adj, rate=rate)
+    return MNF
 
 def evaluar_grilla(task_config):
     K=task_config.shape[0]
     canal=expModel(indicatrix=True)
-    Kopts=np.arange(K*(K-1))
     dist=(canal.rango)*1.0
     rango=0.5
     x=np.linspace(rango,(dist-rango),int(1*((dist))+1))
     y=np.linspace(rango,(dist-rango),int(1*((dist))+1))
     NA=np.array([[0.5,0.5]])
-    mnf=MNF_share_solver(num_task_config=K, num_comm_config=1, channel=canal, Kopts=Kopts)
+    
     c_map=np.empty((len(x),len(y)))
     for c_i, i in enumerate(x):
         for c_j, j in enumerate(y):
             NA[0,0]=i
             NA[0,1]=j
-            #print(NA)
-            #try: 
-            MFR, status,_,_,_=mnf.solve(task_config=task_config, comm_config=NA)
-            c_map[c_i,c_j]=MFR
+            config=np.vstack((task_config, NA))
+            adj=canal.adjacency(config)
+            rate,_=canal.predict(config)
+            mnf,status=MNF_graph_solver(num_task_config=K, num_comm_config=1, adj=adj, rate=rate)
+            c_map[c_i,c_j]=mnf
         
         #except:
         #        pass

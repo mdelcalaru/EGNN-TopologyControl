@@ -22,7 +22,7 @@ device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #artifact_file="./model/EGNN_best_model.ckpt"
 #model_file = Path(artifact_file)
-artifact_name="model-8a7a7xut:v99"
+artifact_name="model-ctt982k5:v99"
 #  artifact_name="model-nmj8b857:v19" 
 artifact_dir="./artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
@@ -40,12 +40,12 @@ model =LightningEGNN_net.load_from_checkpoint(model_file)
 canal=expModel(indicatrix=True)
 dist=(canal.rango)*1.0
 TA=torch.tensor([[0.0,0.0],[dist,0.0],[0.0,dist]])
-x=np.linspace(0,(dist),int(((dist))+1))
-y=np.linspace(0,(dist),int(((dist))+1))
+x=np.linspace(0,(dist),int((2*(dist))+1))
+y=np.linspace(0,(dist),int((2*(dist))+1))
 task_agents=3
 comm_agents=1
 
-with open('cvxpy_examples/graph_map.pkl', 'rb') as f:
+with open('cvxpy_examples/graph_map_sinNorm.pkl', 'rb') as f:
     c_mapCVXPY = pickle.load(f)
 
 c_map=np.empty((len(x),len(y)))
@@ -71,13 +71,15 @@ for c_i, i in enumerate(x):
 fig =plt.figure(figsize=(10,10))
 
 ax1 = fig.add_subplot(1, 2, 1)
+divider = make_axes_locatable(ax1)
+cax1 = divider.append_axes("right", size="5%", pad=0.05)
 
-im1= ax1.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_map.max(), vmin=c_map.min())
+im1= ax1.imshow(c_map, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
 ax1.set_xlabel('x coordinate for nodes', fontsize=15)
 ax1.set_ylabel('y coordinate for nodes', fontsize=15)
 ax1.set_title(r"EGNN gradients over net $P(\boldsymbol{x})$",fontsize=20)
 ax1.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
-#fig.colorbar(im1,cax=cax1)
+fig.colorbar(im1,cax=cax1)
 
 ax1.quiver(Xm,Ym, grid_grads_U, grid_grads_V, color='red')
 ax1.set_xticks([])
@@ -87,13 +89,15 @@ ax1.set_xlim(-0.3, dist+0.3)
 ax1.set_facecolor("white")
 
 ax2 = fig.add_subplot(1, 2, 2)
+divider = make_axes_locatable(ax2)
+cax2 = divider.append_axes("right", size="5%", pad=0.05)
 
-im1= ax2.imshow(c_mapCVXPY, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
+im2= ax2.imshow(c_mapCVXPY, cmap=plt.get_cmap('gray'),origin='lower',extent=[x[0], x[-1], y[0], y[-1]], vmax=c_mapCVXPY.max(), vmin=c_mapCVXPY.min())
 ax2.set_xlabel('x coordinate for nodes', fontsize=15)
 ax2.set_ylabel('y coordinate for nodes', fontsize=15)
 ax2.set_title(r"EGNN gradients over true $P(\boldsymbol{x})$",fontsize=20)
 ax2.plot(TA[:,0],TA[:,1],'*', color='red', markersize=15)
-#fig.colorbar(im1,cax=cax2)
+fig.colorbar(im2,cax=cax2)
 
 ax2.quiver(Xm,Ym, grid_grads_U, grid_grads_V, color='red')
 ax2.set_xticks([])
