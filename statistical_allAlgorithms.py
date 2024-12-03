@@ -10,7 +10,7 @@ from graph_model import LightningEGNN_net, optimize_NA
 from torch_geometric.data import Data
 from graph_dataset_utils import  points_to_data, x_comm_gen, x_task_gen
 from torch_geometric.utils import to_networkx
-from utils.utils import evalModelConvex,plot_config
+#from utils.utils import evalModelConvex,plot_config
 from utils.connectivity_optimization import ConnectivityOpt
 import math
 from utils.MNF_NoSA import Simulation
@@ -46,7 +46,7 @@ artifact_name="model-ja48m02m:v19" #
 artifact_dir="artifacts/" + artifact_name +"/model.ckpt"
 model_file = Path(artifact_dir)
 model =LightningEGNN_net.load_from_checkpoint(model_file)
-
+print(model)
 # Initialize agents config
 dist=(canal.rango)*distance_coeficient
 
