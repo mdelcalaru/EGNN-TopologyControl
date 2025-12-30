@@ -1,11 +1,8 @@
 from matplotlib import cm
-from channel_model import expModel, PiecewisePathLossModel
+from channel_model import expModel
 import numpy as np
 import matplotlib.pyplot as plt
 
-#cm = expModel(alpha=0.7)
-#cm_ind=expModel(indicatrix=True)
-cm_ind=PiecewisePathLossModel(print_values=False)
 def Capacity(x, y, cm):
     rate, var = cm.predict(np.vstack((x, y)))
     return rate[0,1]
@@ -13,40 +10,33 @@ def Capacity(x, y, cm):
 def adjacency(x, y, cm):
     return cm.adjacency(np.vstack((x, y)))
 
-
 x = np.zeros((80,2))
 y = np.array([0,0])
-x[:,0]=np.linspace(0, 60, 80)
-l=[]
-l2=[]
-l3=[]
+x[:,0] = np.linspace(0, 20, 80)
+b_fit=0.006346333937904484
+# --- distintos conjuntos de parámetros a comparar ---
+param_sets = [
+    {"Ne": 2, "corte": 1/np.sqrt(b_fit), "power": 4.277633130295451},
+    {"Ne": 4, "corte": 1/np.sqrt(b_fit), "power": 4.277633130295451},
+]
 
-for i in range(x.shape[0]):
-    l.append(Capacity(x[i,:], y, cm_ind))
-    adj=adjacency(x[i,:], y, cm_ind)
+plt.figure()
 
-    l2.append(adj[0,1])
-    adj_ind=adjacency(x[i,:], y, cm_ind)
-    l3.append(adj_ind[0,1])
+for pars in param_sets:
+    cm_ind = expModel(**pars)
+    l_cap = []
+    l_adj = []
+    for i in range(x.shape[0]):
+        l_cap.append(Capacity(x[i,:], y, cm_ind))
+        adj = adjacency(x[i,:], y, cm_ind)
+        l_adj.append(adj[0,1])
+    # Graficar capacity y/o adjacency; ejemplo solo capacity:
+    label = f"Ne={pars['Ne']}, corte={pars['corte']}"
+    plt.plot(x[:,0], l_cap, label=label)
+    plt.plot(x[:,0], l_adj, '--', label=f"Adj {label}")
 
-#major_ticks = np.linspace(0, 1, 3, endpoint=True)
-# minor_ticks = np.linspace(0, 1, 9, endpoint=True)
-
-# major_ticksx = np.linspace(0, 20, 5, endpoint=True)
-# minor_ticksx = np.linspace(0, 20, 9, endpoint=True)
-
-plt.plot(x[:,0], l, x[:,0], l3)
-# plt.yticks(minor_ticks, minor=True)
-# plt.yticks(major_ticks, minor=False)
-# plt.xticks(minor_ticksx, minor=True)
-# plt.xticks(major_ticksx, minor=False)
-plt.legend(['Capacity', 'Indicatrix'])
-#plt.plot(x[:,0], l,x[:,0], l3)
-#plt.axvline(x=14.5)
-#plt.axhline(y=0.125)
-plt.grid(which='minor', alpha=0.2)
-plt.grid(which='major', alpha=0.5)
-plt.grid('both')
 plt.xlabel('Distance')
-plt.ylabel('Value')
+plt.ylabel('Capacity')
+plt.grid(True, which='both', alpha=0.3)
+plt.legend()
 plt.show()

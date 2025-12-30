@@ -295,14 +295,14 @@ class LinearModel:
 class expModel:
     """A channel mode that decays exponentialy with distance."""
 
-    def __init__(self, corte=10.0, N=2.0, alpha=3,umbral=0.01,indicatrix=False):
-        self.Ne=N
+    def __init__(self, corte=10.0, Ne=2.0,umbral=0.01,indicatrix=True, power=1.0):
+        self.Ne=Ne
         self.corte = corte
-        self.alpha = alpha
         self.umbral = umbral
-        self.rango = (corte)*(-np.log(umbral))**(1.0/N)
-        self.beta = self.rango +(1/alpha)*np.log(umbral/(1-umbral))
+        self.rango = (corte)*(-np.log(umbral))**(1.0/Ne)
+        self.beta = self.rango +np.log(umbral/(1-umbral))
         self.indicatrix = indicatrix
+        self.power=power
 
     def predict(self, x):
         """Compute the expected channel rate and variance for a team of agents.
@@ -316,7 +316,7 @@ class expModel:
 
         """
         dist = spatial.distance_matrix(x, x)
-        rate = np.exp(-((dist/self.corte)**self.Ne))
+        rate = self.power*np.exp(-((dist/self.corte)**self.Ne))
         rate[np.eye(dist.shape[0], dtype=bool)] = 0.0
         var = np.zeros(dist.shape)
         return rate, var
@@ -334,7 +334,7 @@ class expModel:
 
         """
         if np.linalg.norm(xi - xj) > 0:
-            rate = np.exp(-((np.linalg.norm(xi - xj))/self.corte)**self.Ne) 
+            rate = self.power*np.exp(-((np.linalg.norm(xi - xj))/self.corte)**self.Ne) 
             var = 0.0
             return rate, var
         else:
@@ -358,9 +358,9 @@ class expModel:
         xj = np.reshape(xj, (2,1))
 
         diff = xi - xj
-        dist = np.linalg.norm(xi - xj)
-        return -1.0 *self.predict_link(xi, xj)[0] * (self.Ne/(self.corte**4)) * (diff/np.linalg.norm(diff)) * (dist)**(self.Ne-1)
-    
+        dist = max(np.linalg.norm(diff), 1e-12)
+        return -1.0*self.power*self.predict_link(xi, xj)[0] * (self.Ne/(self.corte**self.Ne)) * diff*(dist**(self.Ne-2))
+        
      
     def adjacency(self, x):
       if self.indicatrix:

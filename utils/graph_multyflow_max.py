@@ -43,7 +43,7 @@ class Node(object):
         
         return cst
     
-def MNF_graph_solver(num_task_config, num_comm_config, adj,rate):
+def MNF_graph_solver(num_task_config, num_comm_config, adj,rate, return_flows=False):
     T=num_task_config
     N=num_comm_config+T
     K=T*(T-1)
@@ -89,25 +89,35 @@ def MNF_graph_solver(num_task_config, num_comm_config, adj,rate):
         constraints+=[1-sum(t for t in node.taus)-sum(nt for nt in neighs_taus) >=0]
 
 
-    logsum=cp.sum(cp.log(ak+1e-6))#/K
+    logsum=cp.sum(cp.log(ak+1e-8))/K
     prob = cp.Problem(cp.Maximize(logsum), constraints)
     prob.solve(solver=cp.MOSEK,verbose=False, mosek_params={'MSK_IPAR_INTPNT_SOLVE_FORM':   'MSK_SOLVE_DUAL'} )
     #prob.solve(solver=cp.SCS)#,feastol=1e-24)
-    '''edges_tau_value=[]
-    edges_rates=[]
-    for edge in edges:
-        edges_tau_value.append(edge.tau.value)
-        edges_rates.append(edge.rates.value)
+    if return_flows:
+        edges_tau_value=[]
+        edges_rates=[]
+        for edge in edges:
+            edges_tau_value.append(edge.tau.value)
+            edges_rates.append(np.sum(edge.rates.value))
 
-    nodes_edges_rates=[]
-    nodes_taus=[]
-    nodes_accumulation=[]
-    nodes_neigh_taus=[]
+        # nodes_edges_rates=[]
+        # nodes_taus=[]
+        # nodes_accumulation=[]
+        # nodes_neigh_taus=[]
 
-    for node in nodes:   
-        nodes_edges_rates.append(node.edge_rates)
-        nodes_taus.append(node.taus)
-        nodes_accumulation.append(node.accumulation)
-        #nodes_neigh_taus.append(node.neigh_taus)
-    '''
-    return logsum.value, prob.status,# ak.value, edges_tau_value, edges_rates, nodes_edges_rates, nodes_taus, nodes_accumulation, nodes_neigh_taus
+        # for node in nodes:   
+        #     nodes_edges_rates.append(node.edge_rates)
+        #     nodes_taus.append(node.taus)
+        #     nodes_accumulation.append(node.accumulation)
+        #     #nodes_neigh_taus.append(node.neigh_taus)
+        
+        flows={'flows_ak':ak.value,
+               'edge_tau':edges_tau_value,
+               'edge_rate':edges_rates}
+        
+        return logsum.value, flows
+    
+    else:
+        return logsum.value, prob.status
+    
+    

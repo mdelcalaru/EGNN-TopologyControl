@@ -1,15 +1,11 @@
 import numpy as np
-import datetime
 import shutil
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from matplotlib import cm
 from matplotlib.colors import Normalize
-import networkx as nx
-#from .MNF_cvxpy import MNF_share_solver
-from utils.graph_multyflow_max import MNF_graph_solver
-from .channel_model import expModel
 from torch_geometric.utils import to_networkx
+import networkx as nx
+import torch
 
 def human_readable_duration(dur):
     t_str = []
@@ -19,13 +15,12 @@ def human_readable_duration(dur):
             dur -= int(dur / unit) * unit
     return ' '.join(t_str)
 
-
 def console_width_str(msg):
     col, _ = shutil.get_terminal_size((80,20))
     return msg + (col - len(msg))*' '
 
 
-
+#configuration plotting
 def plot_config(config, ax=None, pause=None, clear_axes=False, show=True,
                 title=None, ids=None, task_ids=None, routes=None, rates=None,
                 bbx=None):
@@ -133,20 +128,20 @@ def plot_config(config, ax=None, pause=None, clear_axes=False, show=True,
         for i, j in [(i,j) for i in range(len(x)) for j in range(i+1,len(x))]:
             if rates[i,j] == 0.0:
                 continue
+            else:
+                Pi = np.asarray([x[i], y[i]])
+                Pj = np.asarray([x[j], y[j]])
 
-            Pi = np.asarray([x[i], y[i]])
-            Pj = np.asarray([x[j], y[j]])
+                a1 = np.arctan2(Pj[1]-Pi[1], Pj[0]-Pi[0])
+                a2 = np.arctan2(Pi[1]-Pj[1], Pi[0]-Pj[0])
 
-            a1 = np.arctan2(Pj[1]-Pi[1], Pj[0]-Pi[0])
-            a2 = np.arctan2(Pi[1]-Pj[1], Pi[0]-Pj[0])
+                # line segment endpoints
+                scale = 0.04 * window_scale
+                line = np.zeros((2,2))
+                line[0,:] = Pi + scale*np.asarray([np.cos(a1), np.sin(a1)])
+                line[1,:] = Pj + scale*np.asarray([np.cos(a2), np.sin(a2)])
 
-            # line segment endpoints
-            scale = 0.04 * window_scale
-            line = np.zeros((2,2))
-            line[0,:] = Pi + scale*np.asarray([np.cos(a1), np.sin(a1)])
-            line[1,:] = Pj + scale*np.asarray([np.cos(a2), np.sin(a2)])
-
-            ax.plot(line[:,0], line[:,1], lw=2, c=cmap.to_rgba(rates[i,j]*2))#cmap.to_rgba(rates[i,j])
+                ax.plot(line[:,0], line[:,1], lw=2, alpha=(rates[i,j].item()))#cmap.to_rgba(rates[i,j])
 
         # plt.colorbar(cmap, ax=ax)
 
@@ -154,11 +149,11 @@ def plot_config(config, ax=None, pause=None, clear_axes=False, show=True,
 
     if len(x) != len(id_mask):
         import pdb;pdb.set_trace()
-    ax.plot(x[id_mask], y[id_mask], 'ro', ms=16, fillstyle='none',
-            markeredgewidth=2, label='task')
-    ax.plot(x[~id_mask], y[~id_mask], 'bo', ms=16, fillstyle='none',
-            markeredgewidth=2, label='network')
-    ax.legend(markerscale=0.8, fontsize=20)
+    ax.plot(x[id_mask], y[id_mask], 'ro', ms=10, fillstyle='none',
+            markeredgewidth=1, label='task')
+    ax.plot(x[~id_mask], y[~id_mask], 'bo', ms=10, fillstyle='none',
+            markeredgewidth=1, label='network')
+    ax.legend(markerscale=0.5, fontsize=5)
 
     # add agent ID in middle of circle
 
@@ -176,63 +171,58 @@ def plot_config(config, ax=None, pause=None, clear_axes=False, show=True,
         else:
             plt.pause(pause)
 
+def graph_plot(data, show=True, ax=None, title=None, xlim=None, ylim=None):
+    positions, types, edge_index = data.pos, data.x, data.edge_index
 
-def graph_plot(data):
-    positions, types, edge_index= data.pos, data.x, data.edge_index
-    #data=Data(x=types, edge_index=edge_index, pos=positions, y=data.y)
     # Convierte el objeto Data en un grafo de NetworkX
-    G = to_networkx(data)#nx.Graph()
-    #G.add_edges_from(edge_index.t().tolist())
+    G = to_networkx(data)
 
-    # Obtén las etiquetas de clase y sus valores únicos
-    node_labels = types[:,0].tolist()
+    # Etiquetas de nodos según su tipo
+    node_labels = types[:, 0].tolist()
     unique_labels = list(set(node_labels))
-    #print(unique_labels)
-    # Asigna colores a cada etiqueta de clase
     label_colors = [unique_labels.index(label) for label in node_labels]
-    print(label_colors)
-    fig, ax=plt.subplots(1,1,figsize=(10,10))
-    # Dibuja el grafo utilizando colores según las etiquetas de clase
-    nx.draw(G, pos=positions, with_labels=True, node_color=label_colors, cmap=plt.get_cmap('cool'), node_size=2000, font_size=10,ax=ax)
-    ax.set_title(f'MFR de esta configuración es {data.y}')
-    plt.show()
 
+    # Si hay atributos en las aristas, usarlos para la transparencia
+    if hasattr(data, "edge_attr") and data.edge_attr is not None:
+        edge_weights = data.edge_attr.squeeze().tolist()
+    else:
+        edge_weights = [1.0] * G.number_of_edges()
 
+    # Normalizar a [0.2, 1.0] para transparencia
+    edge_alphas = [(w / max(edge_weights)) for w in edge_weights]
 
+    # --- Dibujo ---
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 
+    # Nodos
+    nx.draw_networkx_nodes(
+        G, pos=positions,
+        node_color=label_colors, cmap=plt.get_cmap('cool'),
+        node_size=200, ax=ax
+    )
+    nx.draw_networkx_labels(G, pos=positions, font_size=10, ax=ax)
 
-def evalModelConvexSim(NA, TA):
-    K=TA.shape[0]
-    N=NA.shape[0]
-    canal=expModel(indicatrix=True)
-    config=np.vstack((TA, NA))
-    adj=canal.adjacency(config)
-    rate,_=canal.predict(config)
-    MNF, status=MNF_graph_solver(num_task_config=K, num_comm_config=N, adj=adj, rate=rate)
-    return MNF
+    # Aristas con transparencia variable
+    for (u, v), alpha in zip(G.edges(), edge_alphas):
+        nx.draw_networkx_edges(
+            G, pos=positions,
+            edgelist=[(u, v)],
+            width=4,
+            edge_color="green",
+            alpha=alpha,
+            ax=ax
+        )
 
-def evaluar_grilla(task_config):
-    K=task_config.shape[0]
-    canal=expModel(indicatrix=True)
-    dist=(canal.rango)*1.0
-    rango=0.5
-    x=np.linspace(rango,(dist-rango),int(1*((dist))+1))
-    y=np.linspace(rango,(dist-rango),int(1*((dist))+1))
-    NA=np.array([[0.5,0.5]])
+    ax.set_title(f'MFR es {data.y} | {title}')
+    ax.set_axis_on()
+    ax.tick_params(labelleft=True, labelbottom=True)   # mostrar los números
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+    ax.grid(True)
+    if show:
+        plt.show()
     
-    c_map=np.empty((len(x),len(y)))
-    for c_i, i in enumerate(x):
-        for c_j, j in enumerate(y):
-            NA[0,0]=i
-            NA[0,1]=j
-            config=np.vstack((task_config, NA))
-            adj=canal.adjacency(config)
-            rate,_=canal.predict(config)
-            mnf,status=MNF_graph_solver(num_task_config=K, num_comm_config=1, adj=adj, rate=rate)
-            c_map[c_i,c_j]=mnf
-        
-        #except:
-        #        pass
-            
-    return np.max(c_map)
-
+    

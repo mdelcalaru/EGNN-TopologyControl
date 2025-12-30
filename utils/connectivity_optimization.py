@@ -30,7 +30,7 @@ class ConnectivityOpt:
         rate, _ = channel_model.predict(config)
         lap = np.diag(np.sum(rate, axis=1)) - rate
         v, _ = np.linalg.eigh(lap)
-        return v[1]
+        return v[1]#2nd smallest eigvalue
 
     def get_comm_config(self):
         return self.config[self.comm_idcs]

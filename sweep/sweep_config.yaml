@@ -1,0 +1,39 @@
+project: graph_model_Grad  # nombre del proyecto
+entity: iie-sc  # nombre del equipo o usuario en wandb
+program: sweep/sweep_train.py
+command: ["python", "-m", "sweep.sweep_train"]
+method: grid
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  dim_pairs:
+    values: #- [[8, 8], [4, 4]]
+      - [[4, 4], [8, 8]]
+      - [[4, 4, 4], [8, 8, 8]]
+  optimizer:
+    value: "adam"
+  learning_rate:
+    values: [0.001, 0.00001]
+  dropout:
+    value: 0.0
+  batch_size:
+    values: [20, 100]
+  epochs:
+    value: 50
+  update_feats:
+    values: [true, false]
+  update_coors:
+    value: true
+  NormCoors:
+    value: false
+  aggr:
+    values: ["mean", "sum"]
+  edges:
+    values: [false, true]
+  mode:
+    value: "grad" #"mnf" #or "grad"
+  use_all_data:
+    value: True
+  filter_threshold:
+    value: 0.01 #[0.01, 0.01, 0.2]

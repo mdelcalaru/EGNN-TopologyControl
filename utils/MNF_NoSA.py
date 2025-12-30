@@ -43,8 +43,10 @@ class Swarm:
       return
 
 class Scenario:
-    def __init__(self, num_task_agents, num_net_agents,alpha_0=0.1,TA_pos=None,NA_pos=None,agent_density = 1, seed_ta=None, seed_na=None,d_max=1):
+    def __init__(self, num_task_agents, num_net_agents,alpha_0=0.1,TA_pos=None,NA_pos=None,agent_density = 1, seed_ta=None, seed_na=None,d_max=1, Ne=4, P0=1):
         self.d_max = d_max
+        self.P0 = P0
+        self.Ne = Ne
         self.N = num_task_agents  + num_net_agents
         self.max_radius = np.sqrt(self.N / (agent_density))
         self.task_agents = Swarm(num_task_agents,max_radius = self.max_radius,seed=seed_ta,pos=TA_pos)
@@ -206,7 +208,7 @@ class Scenario:
       na_positions = self.net_agents.get_positions()
       positions = np.concatenate([ta_positions, na_positions])
       dist = distance_matrix(positions,positions)
-      capacity_matrix = np.exp(-(dist/self.d_max)**4)
+      capacity_matrix = self.P0*np.exp(-(dist/self.d_max)**self.Ne)
       np.fill_diagonal(capacity_matrix,0)
       # capacity_matrix[0:self.num_task_agents,0:self.num_task_agents] = 0
       self.capacity_matrix = capacity_matrix
@@ -235,7 +237,7 @@ class Scenario:
 
 class Optimization:
     def __init__(self, num_task_agents, num_net_agents,beta_1=0.1,beta_2=0.1,agent_density = 0.3,l2_penalty=0.01,seed_opt=16,fairness=1,weights=None,custom_comms=False,mask_reles=None,mask_sinks=None,mask_sources=None,commodities=None):
-        np.random.seed(seed_opt)
+        #np.random.seed(seed_opt)
         self.l2_penalty = l2_penalty
         self.beta_1 = beta_1
         self.beta_2 = beta_2
@@ -300,7 +302,11 @@ class Optimization:
     def update_a(self):
         self.a[self.mask_reles==1] = 0
         self.a[(self.mask_sources==1) & (self.weights==0)]= (np.sum(self.r,axis=2).T - np.sum(self.r,axis=1).T)[(self.mask_sources==1) & (self.weights==0)]
-        self.a[(self.mask_sources==1) & (self.weights!=0)] = np.clip(1 / ((self.lbda[(self.mask_sources==1) & (self.weights!=0)])**(1/self.f))  / self.weights[(self.mask_sources==1) & (self.weights!=0)],0,self.N)
+        #self.a[(self.mask_sources==1) & (self.weights!=0)] = np.clip(1 / ((self.lbda[(self.mask_sources==1) & (self.weights!=0)])**(1/self.f))  / self.weights[(self.mask_sources==1) & (self.weights!=0)],0,self.N)
+        lbda_safe = np.where(self.lbda == 0, np.finfo(float).eps, self.lbda)
+        self.a[(self.mask_sources==1) & (self.weights!=0)] = np.clip(1 / (lbda_safe[(self.mask_sources==1) & (self.weights!=0)] ** (1/self.f)) / 
+            self.weights[(self.mask_sources==1) & (self.weights!=0)], 0, self.N)
+        #
         self.a[self.mask_sinks==1] = (np.sum(self.r,axis=2).T - np.sum(self.r,axis=1).T)[self.mask_sinks==1]
         return
 
@@ -352,7 +358,12 @@ class Optimization:
       print(np.sum(self.r,axis=0))
 
 class Simulation:
-    def __init__(self, num_task_agents=None, num_net_agents=None,task_agents_init=None,net_agents_init=None,beta_1=0.1,beta_2=0.1,alpha_0=0.1,fairness=1,weights=None,agent_density = 1,seed_ta=None, seed_na = None,seed_opt=16,nmbr_iterations=1000,gradient_ascent_steps=1,l2_penalty=0.01,NA_pos_0=None,TA_pos_0=None,d_max=1,decreasing_alpha=True,plot_partial=False,plot_final=True,opt_func=None,idx_sink=0,custom_comms=False,mask_reles=None,mask_sinks=None,mask_sources=None,commodities=None):
+    def __init__(self, num_task_agents=None, num_net_agents=None, task_agents_init=None, net_agents_init=None,
+                 beta_1=0.1, beta_2=0.1, alpha_0=0.0001, fairness=1, weights=None, agent_density = 1, seed_ta=None, 
+                 seed_na = None, seed_opt=16, nmbr_iterations=5000, gradient_ascent_steps=10, l2_penalty=0.01,
+                 NA_pos_0=None, TA_pos_0=None, d_max=1, P0=1, Ne=4, decreasing_alpha=False, plot_partial=False, 
+                 plot_final=True, opt_func=None, custom_comms=False, mask_reles=None,
+                 mask_sinks=None, mask_sources=None, commodities=None):
 
         self.plot_partial = plot_partial
         self.decreasing_alpha = decreasing_alpha
@@ -363,7 +374,7 @@ class Simulation:
         self.l2_penalty = l2_penalty
         self.opt_func = opt_func
         self.plot_final = plot_final
-        self.scenario = Scenario(num_task_agents=num_task_agents, num_net_agents=num_net_agents,alpha_0=alpha_0,TA_pos=TA_pos_0,NA_pos=NA_pos_0,agent_density=agent_density,seed_ta=seed_ta, seed_na=seed_na,d_max=d_max)
+        self.scenario = Scenario(num_task_agents=num_task_agents, num_net_agents=num_net_agents,alpha_0=alpha_0,TA_pos=TA_pos_0,NA_pos=NA_pos_0,agent_density=agent_density,seed_ta=seed_ta, seed_na=seed_na,d_max=d_max, Ne=Ne, P0=P0)
 
         # weights = distance_matrix(sim_fair_1.scenario.task_agents.get_positions(),sim_fair_1.scenario.task_agents.get_positions())**2
         # weights[weights!=0] = 1/weights[weights!=0]
@@ -378,7 +389,10 @@ class Simulation:
         # zeros_array = np.zeros((num_net_agents, weights.shape[1]))
         # weights = np.vstack((weights, zeros_array))
 
-        self.opt = Optimization(num_task_agents, num_net_agents,beta_1,beta_2,alpha_0,l2_penalty,seed_opt,fairness=fairness,weights=weights,custom_comms=custom_comms,mask_reles=mask_reles,mask_sinks=mask_sinks,mask_sources=mask_sources,commodities=commodities)
+        self.opt = Optimization(num_task_agents, num_net_agents, beta_1, beta_2, alpha_0,
+                                l2_penalty, seed_opt, fairness=fairness, weights=weights, 
+                                custom_comms=custom_comms, mask_reles=mask_reles, 
+                                mask_sinks=mask_sinks, mask_sources=mask_sources, commodities=commodities)
         self.opt.capacity = self.scenario.get_capacity()
         self.grad_history = []
         self.mu_history = []
@@ -396,7 +410,7 @@ class Simulation:
         self.unf_3 = []
         self.alpha_history = []
         self.iter_time = []
-        self.decreasing_constant=0
+        self.decreasing_constant=1
 
     def step(self):
         for i in range(self.gradient_ascent_steps):
