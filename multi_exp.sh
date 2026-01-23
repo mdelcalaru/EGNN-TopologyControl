@@ -3,19 +3,16 @@
 # Guarda logs y corre análisis después de cada corrida
 
 # Ruta base de checkpoints
-#CHECKPOINTS=./checkpoints
-CHECKPOINTS=$(readlink -f ./data_sync/models_ckp)
+CHECKPOINTS=./checkpoints
+
 # Carpeta de resultados
-RESULTS=$(readlink -f ./data_sync/resultados/time_new)
-#RESULTS=./data_sync/resultados
+RESULTS=./data_sync/resultados
 
 # Crear carpeta si no existe
 mkdir -p "$RESULTS"
 
 # Lista de pares TASK,COMM
 #PAIRS=("7 8")
-# "8 12" "9 11" "7 18" "8 17" "9 16" "10 15")
-#PAIRS=("10 15" "30 20" "40 60")"35 45" "40 50""20 30"  
 PAIRS=("3 2" "7 5" "11 9" "17 13" "22 18" "28 22")
 
 # Número fijo de experimentos
@@ -53,8 +50,6 @@ for pair in "${PAIRS[@]}"; do
 
   # Ejecutar análisis sobre el directorio
   python -m process_results.main_multi --data_dir "$LAST_RUN"
-  curl -d "✅ Par $TASK task, $COMM net finalizado" https://ntfy.sh/gtc-runs-51288
   
 done
 
-curl -d "✅ Script multi_exp_31 finalizado" https://ntfy.sh/gtc-runs-51288

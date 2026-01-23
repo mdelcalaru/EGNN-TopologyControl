@@ -314,7 +314,7 @@ class Optimization:
         mu_mtrx = np.tile(self.mu,(self.commodities,1,1))
         lbda_mtrx = np.tile(self.lbda, (self.N,1,1))
         r_linear = (-mu_mtrx + lbda_mtrx.transpose((2,1,0)) - lbda_mtrx.transpose((2,0,1)))/ (2*self.l2_penalty)
-        self.r = np.clip(r_linear,0, 1)
+        self.r = np.clip(r_linear,0 , 10)
         return
 
 
@@ -359,7 +359,7 @@ class Optimization:
 
 class Simulation:
     def __init__(self, num_task_agents=None, num_net_agents=None, task_agents_init=None, net_agents_init=None,
-                 beta_1=0.1, beta_2=0.1, alpha_0=0.0001, fairness=1, weights=None, agent_density = 1, seed_ta=None, 
+                 beta_1=0.1, beta_2=0.1, alpha_0=0.5, fairness=1, weights=None, agent_density = 1, seed_ta=None, 
                  seed_na = None, seed_opt=16, nmbr_iterations=5000, gradient_ascent_steps=10, l2_penalty=0.01,
                  NA_pos_0=None, TA_pos_0=None, d_max=1, P0=1, Ne=4, decreasing_alpha=False, plot_partial=False, 
                  plot_final=True, opt_func=None, custom_comms=False, mask_reles=None,
@@ -413,11 +413,19 @@ class Simulation:
         self.decreasing_constant=1
 
     def step(self):
-        for i in range(self.gradient_ascent_steps):
+        #for i in range(self.gradient_ascent_steps):
+        iter = 0
+        mu_diff = 1e6
+        while mu_diff>1e-2 and iter<self.gradient_ascent_steps:
+          old_mu = self.opt.mu.copy()
           self.opt.update_a()
           self.opt.update_r()
           self.opt.update_lbda()
           self.opt.update_mu()
+          mu_diff = np.linalg.norm(old_mu - self.opt.mu)
+          iter += 1
+        if iter > self.gradient_ascent_steps:
+          print(f"Warning: Gradient ascent did not converge in {self.gradient_ascent_steps} steps, took {iter} steps")
         self.append_records()
         self.scenario.update_positions(self.opt.mu)
         self.opt.capacity = self.scenario.get_capacity()

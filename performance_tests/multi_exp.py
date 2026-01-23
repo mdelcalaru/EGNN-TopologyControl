@@ -82,7 +82,7 @@ if __name__ == "__main__":
         'dist': args.dist 
         }
     if args.seed is not None:
-        #params['seed']=args.seed
+        params['seed']=args.seed
         set_seed(args.seed)
     else:
         params['seed'] =random.randint(0, 10000)
@@ -128,12 +128,12 @@ if __name__ == "__main__":
     num_experiments = params['num_experiments']
     # === Ejecutar experimentos ===
     for ex in tqdm(range(num_experiments), desc="Experimentos"):
-        # logger.info(f"=== Experimento {ex+1}/{num_experiments} ===")
-        # t0 = time.time()
-        # results_static  = run_static_experiment(params, MODELS, ex)
-        # save_results(params=params, estadistica=results_static, models=MODELS, mode='static', output_dir=OUTPUT_DIR, ex=ex)
-        # t1 = time.time()
-        # logger.info(f"Tiempo experimento estático: {t1 - t0:.2f} segundos")
+        logger.info(f"=== Experimento {ex+1}/{num_experiments} ===")
+        t0 = time.time()
+        results_static  = run_static_experiment(params, MODELS, ex)
+        save_results(params=params, estadistica=results_static, models=MODELS, mode='static', output_dir=OUTPUT_DIR, ex=ex)
+        t1 = time.time()
+        logger.info(f"Tiempo experimento estático: {t1 - t0:.2f} segundos")
         t0 = time.time()
         results_dynamic = run_dynamic_experiment(params, MODELS, ex)
         logger.info(f"Tiempo experimento dinámico: {time.time() - t0:.2f} segundos")    

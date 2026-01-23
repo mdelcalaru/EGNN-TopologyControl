@@ -13,7 +13,7 @@ import logging
 from utils.MNF_NoSA import Simulation
 import numpy as np
 import copy
-def evolve_task_agents(params, task_config):
+def evolve_task_agents(params, task_config, D):
     """Evolves the task agents' positions randomly whitin a windows."""
     #deltax = ((torch.rand(params['task_agents']) - 0.5) * 2).to(task_config.device)
     #deltay = ((torch.rand(params['task_agents']) - 0.5) * 2).to(task_config.device)
@@ -26,49 +26,12 @@ def evolve_task_agents(params, task_config):
     #deltay[mask_y] *= -1
     #task_config[:, 0] += deltax
     #task_config[:, 1] += deltay
-    theta=1*(np.pi/180)
-    R=torch.tensor([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], device=task_config.device)
+    #theta=2.0 * (np.pi/180.0)
+    #R=torch.tensor([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]], device=task_config.device)
     #deltas = torch.matmul(task_config, R.T) - task_config
-    return task_config@R.T+ torch.rand((params['task_agents'], 2), device=task_config.device)
-
-def evolve_task_agents0(params, task_config):
-    n_agents = params['task_agents']
-    jitter_scale = params.get("jitter_scale", 0.1)
-    drift_scale = params.get("drift_scale", 0.2)
-    drift_decay = params.get("drift_decay", 0.9)
-    spin_scale = params.get("spin_scale", 0.1)
-    expand_scale = params.get("expand_scale", 0.01)
-    device = task_config.device
-
-    deltas = ((torch.rand(n_agents, 2, device=device) - 0.5) * 2 * jitter_scale)
-
-    if "drift_vectors" not in params:
-        params["drift_vectors"] = torch.zeros((n_agents, 2), device=device)
-    drift_step = drift_scale * (torch.rand(n_agents, 2, device=device) - 0.5)
-    params["drift_vectors"] = drift_decay * params["drift_vectors"] + drift_step
-    deltas += params["drift_vectors"]
-
-    center = torch.tensor([params['space_size']/2, params['space_size']/2], device=device)
-    rel_pos = task_config - center
-
-    thetas = (torch.rand(n_agents, device=device) - 0.5) * 2 * spin_scale
-    expands = (torch.rand(n_agents, device=device) - 0.5) * 2 * expand_scale
-
-    cos_theta = torch.cos(thetas)
-    sin_theta = torch.sin(thetas)
-    rotated = torch.zeros_like(rel_pos)
-    rotated[:, 0] = rel_pos[:, 0] * cos_theta - rel_pos[:, 1] * sin_theta
-    rotated[:, 1] = rel_pos[:, 0] * sin_theta + rel_pos[:, 1] * cos_theta
-    rotated += (rotated - rel_pos) * expands.unsqueeze(1)
-
-    deltas += rotated - rel_pos
-
-    mask_x = (task_config[:, 0] + deltas[:, 0] < 0) | (task_config[:, 0] + deltas[:, 0] > params['space_size'])
-    mask_y = (task_config[:, 1] + deltas[:, 1] < 0) | (task_config[:, 1] + deltas[:, 1] > params['space_size'])
-    deltas[mask_x, 0] *= -1
-    deltas[mask_y, 1] *= -1
-
-    return task_config + deltas
+    #return task_config@R.T+ 2.0*(torch.rand((params['task_agents'], 2), device=task_config.device))
+    #return task_config + 2.0*(torch.rand(params['task_agents'], 2, device=task_config.device))
+    return task_config + 1.5*D+2.0*(torch.rand(params['task_agents'], 2, device=task_config.device))
 
 
 def run_dynamic_experiment(params, models_dict,ex):
@@ -112,7 +75,10 @@ def run_dynamic_experiment(params, models_dict,ex):
     mnf_noSA_hist = [MNF_ini]
     noSA_time_hist = []
     eval_interval=1
-    tope_L2=80
+    tope_L2=100
+    thetas = np.random.uniform(0, 2*np.pi, size=params['task_agents'])
+    D = np.column_stack((np.cos(thetas), np.sin(thetas)))  # (N, 2)
+
     #maxL2 data
     if params['total_agents']>tope_L2:
         msg = f"Experimento {ex+1}: Saltando MaxL2 por muchos agentes ({params['total_agents']})."
@@ -124,8 +90,11 @@ def run_dynamic_experiment(params, models_dict,ex):
         maxL2_time_hist = []
 
     for step in tqdm(range(experiment_steps), desc=f'Pasos experimento {ex+1}', position=1):
-        task_config = evolve_task_agents(params, task_config)
+        task_config = evolve_task_agents(params, task_config,D)
         free_hist.append(task_config.clone())
+        # if step%10==0:
+        #     thetas = np.random.uniform(0, 2*np.pi, size=params['task_agents'])
+        #     D = np.column_stack((np.cos(thetas), np.sin(thetas)))  # (N, 2)
 
         # --- Evaluar cada modelo ---
         for model_name, model_pair in models_dict.items():
@@ -133,17 +102,19 @@ def run_dynamic_experiment(params, models_dict,ex):
             NAY = models_data[model_name]['modelY']['comm_config_hist'][-1]
             tMNFY = time.time()
             y_evol=[]
-            for _ in range(aproximations_steps):
-                grad, y_v = grad_simulate_stepY(NA=NAY, model=model_pair['modelY'], TA=task_config, device=device, canal=canal, y_value=True)
+            #for _ in range(aproximations_steps):
+            NA_Y, iter = optimize_NA(NA=comm_config, model=model_pair['modelY'],model_type ='mnf', TA=task_config, 
+                                 stop_thresh=1e-3,device=device, max_iter=3000,canal=canal,thr=0.01)
+            #    grad, y_v = grad_simulate_stepY(NA=NAY, model=model_pair['modelY'], TA=task_config, device=device, canal=canal, y_value=True)
                 # grad_norm= torch.norm(grad.cpu(),dim=1,keepdim= True)
                 # scaling=torch.clamp(grad_norm,min=1e-8)
                 # grad_scaled=grad.cpu()*(torch.minimum(grad_norm, torch.tensor(step_size,device=grad_norm.device))/scaling)
                 # NAY = NAY + grad_scaled#grad.cpu()*step_size/torch.norm(grad.cpu())
-                NAY = NAY + grad.cpu()*step_size/torch.norm(grad.cpu(),dim=1, keepdim=True)
-                y_evol.append(y_v)
+            #    NAY = NAY + grad.cpu()*step_size/torch.norm(grad.cpu(),dim=1, keepdim=True)
+            #    y_evol.append(y_v)
             models_data[model_name]['modelY']['time_hist'].append(time.time()-tMNFY)    
             models_data[model_name]['modelY']['comm_config_hist'].append(NAY.clone())
-            models_data[model_name]['modelY']['y_evol'].append(copy.deepcopy(y_evol))
+            #models_data[model_name]['modelY']['y_evol'].append(copy.deepcopy(y_evol))
             if step%eval_interval==0:
                 models_data[model_name]['modelY']['MNF_hist'].append(evalModelConvex(TA=task_config, NA=NAY, canal=canal))
             else:
@@ -152,13 +123,15 @@ def run_dynamic_experiment(params, models_dict,ex):
             # Modelo Grad
             NAG = models_data[model_name]['modelG']['comm_config_hist'][-1]
             tMNFG = time.time()
-            for _ in range(aproximations_steps):
-                grad = grad_simulate_stepGrad(NA=NAG, model=model_pair['modelG'], TA=task_config, device=device, canal=canal)
+            #for _ in range(aproximations_steps):
+            #    grad = grad_simulate_stepGrad(NA=NAG, model=model_pair['modelG'], TA=task_config, device=device, canal=canal)
                 # grad_norm= torch.norm(grad.cpu(),dim=1,keepdim=True)
                 # scaling=torch.clamp(grad_norm,min=1e-8)
                 # grad_scaled=grad.cpu()*(torch.minimum(grad_norm, torch.tensor(step_size,device=grad_norm.device))/scaling)
                 # NAG = NAG + grad_scaled
-                NAG = NAG + grad.cpu()*step_size/torch.norm(grad.cpu())
+            #    NAG = NAG + grad.cpu()*step_size/torch.norm(grad.cpu())
+            NAG, iter = optimize_NA(NA=comm_config, model=model_pair['modelG'], TA=task_config, 
+                                 model_type='grad', device=device, max_iter=3000, canal=canal)
             models_data[model_name]['modelG']['time_hist'].append(time.time()-tMNFG)
             models_data[model_name]['modelG']['comm_config_hist'].append(NAG.clone())
             if step%eval_interval==0:
@@ -172,7 +145,7 @@ def run_dynamic_experiment(params, models_dict,ex):
                                         x_task=task_config.numpy(),
                                         x_comm=maxL2_config_hist[-1].numpy())
             tMaxL2 = time.time()
-            copt_config = conOpt.maximize_connectivity(viz=False, max_its=aproximations_steps)
+            copt_config = conOpt.maximize_connectivity(viz=False, max_its=1, init_step_size=step_size)
             xNA_fin_maxL2 = copt_config[-params['comm_agents']:, :]
             maxL2_time_hist.append(time.time()-tMaxL2)
             maxL2_config_hist.append(torch.from_numpy(xNA_fin_maxL2).clone())
@@ -183,7 +156,16 @@ def run_dynamic_experiment(params, models_dict,ex):
 #            mnf_maxL2_hist.append(evalModelConvex(TA=task_config, NA=maxL2_config_hist[-1], canal=canal))
             #logger.info(f"Experimento {ex+1} MaxL2 en {maxL2_time_hist[-1]} segundos")
         #noSA baseline
-        sim_c_1 = Simulation(d_max=canal.rango, P0=canal.power, Ne=canal.Ne, num_task_agents=params['task_agents'],num_net_agents=params['comm_agents'],TA_pos_0=task_config.cpu().numpy(),NA_pos_0=comm_config.cpu().numpy(), gradient_ascent_steps=aproximations_steps)
+        sim_c_1 = Simulation(d_max= params['rango'], 
+                     P0=params['channel'].power, 
+                     Ne=params['channel'].Ne, 
+                     num_task_agents=params['task_agents'],
+                     num_net_agents=params['comm_agents'],
+                     TA_pos_0=task_config.cpu().numpy(),
+                     NA_pos_0=comm_config.cpu().numpy(), 
+                     nmbr_iterations=2, 
+                     gradient_ascent_steps=500,
+                     alpha_0=step_size)
         tNOSA=time.time()
         xNA_fin_noSA=sim_c_1.simulate()
         noSA_time_hist.append(time.time()-tNOSA)
